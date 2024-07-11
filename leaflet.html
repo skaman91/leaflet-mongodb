@@ -1,0 +1,75 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="style.css">
+    <title>Застрянь друга Liteoffroad</title>
+</head>
+<body>
+    <div id="map">
+        <div id="msg" class="msg"></div>
+    </div>
+
+</body>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script type="module">
+
+  const map = L.map('map').setView([60.024828, 30.338195], 10)
+  document.getElementById("msg").innerHTML = 'Загружаю точки...'
+  //osm Layer
+  const OSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '<b>Liteoffroad "Застрянь друга"</b>'
+  })
+  OSM.addTo(map)
+
+  // OSM layer
+  const cyclOSM = L.tileLayer('https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', {
+    attribution: '<b>Liteoffroad "Застрянь друга"</b>'  })
+
+  //google2 Layer
+  const googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
+    subdomains:['mt0','mt1','mt2','mt3'],
+    attribution: '<b>Liteoffroad "Застрянь друга"</b>'
+  })
+
+  //layer Controls
+  const baseLayers = {
+    "OpenStreetMap": OSM,
+    "OSM": cyclOSM,
+    "Google maps": googleSat
+  }
+
+  L.control.layers(baseLayers).addTo(map)
+
+  await fetch('http://176.126.162.78:3000/points')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok ' + response.statusText)
+      }
+      return response.json()
+    })
+    .then(data => {
+      console.log('Fetched points:', data)
+
+    //Markers
+    for (const point of data) {
+
+      console.log('point.coordinates', point.coordinates)
+      const rawCoorditares = point.coordinates.split(',')
+      const name = point.name
+      const marker = L.marker([rawCoorditares[0], rawCoorditares[1]])
+      marker.addTo(map)
+      const label = `<b>${name}<br>${rawCoorditares}<br>Рейтинг точки: ${point.rating}<br>Точку установил: ${point.installed}</b><br>${point.comment}`
+      const popup = marker.bindPopup(label)
+      popup.addTo(map)
+      document.getElementById("msg").innerHTML = ''
+    }
+    })
+    .catch(error => {
+      console.error('There was a problem with the fetch operation:', error)
+      document.getElementById("msg").innerHTML = 'Ошибка. Попробуйте обновить страницу.'
+    })
+</script>
+</html>
