@@ -11,11 +11,10 @@
     <div id="map">
         <div id="msg" class="msg"></div>
     </div>
-
 </body>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script type="module">
-
+  import { FETCH_URL } from './auth/data.js'
   const map = L.map('map').setView([60.024828, 30.338195], 10)
   document.getElementById("msg").innerHTML = 'Загружаю точки...'
   //osm Layer
@@ -43,7 +42,7 @@
 
   L.control.layers(baseLayers).addTo(map)
 
-  await fetch('http://176.126.162.78:3000/points')
+  await fetch(FETCH_URL)
     .then(response => {
       if (!response.ok) {
         throw new Error('Network response was not ok ' + response.statusText)
@@ -51,12 +50,9 @@
       return response.json()
     })
     .then(data => {
-      console.log('Fetched points:', data)
 
     //Markers
     for (const point of data) {
-
-      console.log('point.coordinates', point.coordinates)
       const rawCoorditares = point.coordinates.split(',')
       const name = point.name
       const marker = L.marker([rawCoorditares[0], rawCoorditares[1]])
