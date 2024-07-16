@@ -1,12 +1,11 @@
-import http from 'http'
 import { MongoClient } from 'mongodb'
-import { MONGO_URL } from './auth/data.js'
+import { MONGO_URL } from './auth/data.mjs'
 import cors from 'cors'
 import express from 'express'
 
 const client = new MongoClient(MONGO_URL)
 console.log('Connected successfully to db')
-// Устанавливаем порт, на котором будет работать сервер
+
 const PORT = 3000
 const app = express()
 app.use(cors())
