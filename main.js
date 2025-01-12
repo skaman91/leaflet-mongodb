@@ -1,6 +1,7 @@
 // import { FETCH_URL } from './auth/data.mjs'
 const map = L.map('map').setView([60.024828, 30.338195], 10)
 document.getElementById('msg').innerHTML = 'Загружаю точки...'
+
 //osm Layer
 const OSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '<b>Liteoffroad "Застрянь друга"</b>'
@@ -27,38 +28,70 @@ const baseLayers = {
 
 L.control.layers(baseLayers).addTo(map)
 
-function locateUser () {
+const locateControl = L.control.locate({
+  position: 'topright', // Расположение кнопки на карте
+  setView: true,        // Автоматическое центрирование карты
+  drawCircle: true,     // Отображение ореола точности
+  follow: true,         // Автоматическое слежение за пользователем
+  locateOptions: {      // Опции геолокации
+    enableHighAccuracy: true, // Максимальная точность
+    watch: true,             // Включает слежение
+    maximumAge: 0            // Минимальная задержка обновления
+  }
+}).addTo(map)
+
+map.whenReady(() => {
+  locateControl.start(); // Активируем слежение за местоположением
+})
+
+// Функция для перемещения карты на текущее местоположение
+function moveToLocation() {
   if (navigator.geolocation) {
-    let userMarker = null
-
-    // Следим за изменением местоположения
-    navigator.geolocation.watchPosition(position => {
-      const lat = position.coords.latitude
-      const lng = position.coords.longitude
-
-      // Устанавливаем вид карты на текущее местоположение при первом вызове
-      if (!userMarker) {
-        map.setView([lat, lng], 10)
-        userMarker = new L.Marker.SVGMarker([lat, lng], {
-          iconOptions: {
-            color: 'rgb(255,23,23)',
-            circleText: 'Я',
-            circleRatio: 0.65,
-            fontSize: 10,
-            fontWeight: 800
-          }
-        }).addTo(map)
-      } else {
-        // Обновляем местоположение маркера
-        userMarker.setLatLng([lat, lng])
-      }
-    }, error => {
-      alert('Не удалось определить местоположение: ' + error.message)
-    })
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+        map.setView([userLat, userLng], 15); // Перемещаем карту и задаем зум
+      },
+      error => {
+        console.error('Ошибка геолокации: ', error.message);
+        alert('Не удалось получить геопозицию. Разрешите доступ в настройках браузера.');
+      },
+      { enableHighAccuracy: true } // Используем высокую точность
+    );
   } else {
-    alert('Геолокация не поддерживается вашим браузером.')
+    alert('Геолокация не поддерживается вашим браузером.');
   }
 }
+
+// Создаем кастомную кнопку
+const customControl = L.Control.extend({
+  options: {
+    position: 'topright' // Позиция кнопки на карте
+  },
+  onAdd: function (map) {
+    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+
+    container.style.backgroundColor = 'white';
+    container.style.width = '30px';
+    container.style.height = '30px';
+    container.style.display = 'flex';
+    container.style.justifyContent = 'center';
+    container.style.alignItems = 'center';
+    container.style.cursor = 'pointer';
+    container.title = 'Моя геопозиция';
+
+    container.innerHTML = '<i style="font-size:18px;">📍</i>'; // Иконка кнопки (можно заменить)
+
+    // Обработчик клика по кнопке
+    container.onclick = moveToLocation;
+
+    return container;
+  }
+});
+
+// Добавляем кнопку на карту
+map.addControl(new customControl());
 
 // Функция для воспроизведения звука
 function playSound () {
@@ -122,35 +155,12 @@ await fetch('https://point-map.ru/points')
       popup.addTo(map)
       document.getElementById('msg').innerHTML = ''
     }
-    locateUser()
+    // locateUser()
   })
   .catch(error => {
     console.error('There was a problem with the fetch operation:', error)
     document.getElementById('msg').innerHTML = 'Ошибка. Попробуйте обновить страницу.'
   })
-
-// Отслеживание местоположения пользователя
-navigator.geolocation.watchPosition(position => {
-  const userLat = position.coords.latitude
-  const userLng = position.coords.longitude
-
-  markers.forEach((marker, index) => {
-    const markerLat = marker._latlng[0]
-    const markerLng = marker._latlng[1]
-    if (isWithinRadius(userLat, userLng, markerLat, markerLng, 30)) {
-      if (!playedSounds.has(index)) {
-        const button = document.getElementById('playSoundButton')
-        button.click() // Имитация клика
-        // playSound();
-        playedSounds.add(index) // Запоминаем, что звук уже был проигран для этого маркера
-      }
-    } else {
-      playedSounds.delete(index) // Сбрасываем, если пользователь вышел за пределы зоны
-    }
-  })
-}, error => {
-  console.error('Геолокация не поддерживается или ошибка: ' + error.message)
-})
 
 // Обработчик клика по кнопке
 document.getElementById('playSoundButton').addEventListener('click', () => {
