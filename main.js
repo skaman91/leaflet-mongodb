@@ -30,6 +30,8 @@ L.control.layers(baseLayers).addTo(map)
 
 const locateControl = L.control.locate({
   position: 'topright', // Расположение кнопки на карте
+  flyTo: true,
+  keepCurrentZoomLevel: true,
   setView: true,        // Автоматическое центрирование карты
   drawCircle: true,     // Отображение ореола точности
   follow: true,         // Автоматическое слежение за пользователем
@@ -44,57 +46,9 @@ map.whenReady(() => {
   locateControl.start(); // Активируем слежение за местоположением
 })
 
-// Функция для перемещения карты на текущее местоположение
-function moveToLocation() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        const userLat = position.coords.latitude;
-        const userLng = position.coords.longitude;
-        map.setView([userLat, userLng], 15); // Перемещаем карту и задаем зум
-      },
-      error => {
-        console.error('Ошибка геолокации: ', error.message);
-        alert('Не удалось получить геопозицию. Разрешите доступ в настройках браузера.');
-      },
-      { enableHighAccuracy: true } // Используем высокую точность
-    );
-  } else {
-    alert('Геолокация не поддерживается вашим браузером.');
-  }
-}
-
-// Создаем кастомную кнопку
-const customControl = L.Control.extend({
-  options: {
-    position: 'topright' // Позиция кнопки на карте
-  },
-  onAdd: function (map) {
-    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-
-    container.style.backgroundColor = 'white';
-    container.style.width = '30px';
-    container.style.height = '30px';
-    container.style.display = 'flex';
-    container.style.justifyContent = 'center';
-    container.style.alignItems = 'center';
-    container.style.cursor = 'pointer';
-    container.title = 'Моя геопозиция';
-
-    container.innerHTML = '<i style="font-size:18px;">📍</i>'; // Иконка кнопки (можно заменить)
-
-    // Обработчик клика по кнопке
-    container.onclick = moveToLocation;
-
-    return container;
-  }
-});
-
-// Добавляем кнопку на карту
-map.addControl(new customControl());
-
 // Функция для воспроизведения звука
 function playSound () {
+  console.log('1111')
   const audio = new Audio('./sound_30.mp3')
 
   audio.play().then(() => {
@@ -102,22 +56,6 @@ function playSound () {
   }).catch(error => {
     console.error('Ошибка при воспроизведении звука:', error)
   })
-}
-
-// Функция проверки, находится ли пользователь в радиусе 30 метров от точки
-function isWithinRadius (userLat, userLng, markerLat, markerLng, radiusInMeters) {
-  const earthRadius = 6371000 // Радиус Земли в метрах
-  const dLat = (markerLat - userLat) * Math.PI / 180
-  const dLng = (markerLng - userLng) * Math.PI / 180
-
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(userLat * Math.PI / 180) * Math.cos(markerLat * Math.PI / 180) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2)
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  const distance = earthRadius * c
-
-  return distance <= radiusInMeters
 }
 
 const markers = [] // Для хранения маркеров
@@ -155,14 +93,74 @@ await fetch('https://point-map.ru/points')
       popup.addTo(map)
       document.getElementById('msg').innerHTML = ''
     }
-    // locateUser()
   })
   .catch(error => {
     console.error('There was a problem with the fetch operation:', error)
     document.getElementById('msg').innerHTML = 'Ошибка. Попробуйте обновить страницу.'
   })
 
+function addScreenBlinkEffect() {
+  const overlay = document.getElementById('screen-overlay');
+  if (!overlay) {
+    console.error('Элемент #screen-overlay не найден!');
+    return;
+  }
+
+  // Показываем элемент и включаем анимацию
+  overlay.style.display = 'block';
+  overlay.style.animation = 'screen-blink 1s linear 3'; // 3 цикла анимации (1 секунда каждый)
+  document.getElementById('overlay-text').innerHTML = 'ДО ТОЧКИ 30 МЕТРОВ'
+
+  // Убираем эффект через 3 секунды
+  setTimeout(() => {
+    overlay.style.animation = ''; // Сбрасываем анимацию
+    overlay.style.display = 'none'; // Скрываем элемент
+  }, 3000);
+}
+
+// Функция для проверки, находится ли пользователь в радиусе 30 метров от точки
+function isWithinRadius(userLat, userLng, markerLat, markerLng, radiusInMeters) {
+  const earthRadius = 6371000; // Радиус Земли в метрах
+  const dLat = (markerLat - userLat) * Math.PI / 180;
+  const dLng = (markerLng - userLng) * Math.PI / 180;
+
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(userLat * Math.PI / 180) * Math.cos(markerLat * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = earthRadius * c;
+
+  return distance <= radiusInMeters;
+}
+
+// Отслеживаем положение пользователя
+navigator.geolocation.watchPosition(
+  position => {
+    const userLat = position.coords.latitude;
+    const userLng = position.coords.longitude;
+
+    markers.forEach(marker => {
+      const markerLat = marker._latlng[0];
+      const markerLng = marker._latlng[1];
+      if (isWithinRadius(userLat, userLng, markerLat, markerLng, 30)) {
+        if (!playedSounds.has(marker)) {
+          playSound(); // Воспроизводим звук
+          addScreenBlinkEffect(); // Добавляем мерцание экрана
+          playedSounds.add(marker); // Запоминаем, что звук для этой точки уже воспроизведен
+        }
+      }
+    });
+  },
+  error => {
+    console.error('Ошибка отслеживания местоположения: ', error.message);
+  },
+  { enableHighAccuracy: true }
+);
+
+
 // Обработчик клика по кнопке
 document.getElementById('playSoundButton').addEventListener('click', () => {
   playSound() // Воспроизведение звука
+  addScreenBlinkEffect(); // Добавляем мерцание экрана
 })
