@@ -131,13 +131,17 @@ await fetch('https://point-map.ru/points')
     //Markers
     let pointsArray = []
     for (const point of data) {
+      if (point.comment === 'точку украли' || point.comment === 'тестовая') {
+        continue
+      }
       const rawCoorditares = point.coordinates.split(',')
       const lat = rawCoorditares[0]
       const lon = rawCoorditares[1]
       const name = point.name
       const circleText = name.split(' ')[1]
+      const comment = point.comment
 
-      pointsArray.push({ lat, lon, name })
+      pointsArray.push({ lat, lon, name, comment })
       const marker = new L.Marker.SVGMarker([lat, lon], {
         iconOptions: {
           color: setRangColor(point.rang),
@@ -155,7 +159,7 @@ await fetch('https://point-map.ru/points')
     Рейтинг точки: ${point.rating}<br>
     Точку установил: ${point.installed}</b><br>
     ${point.comment}<br>
-    <button class="one-gpx-download" data-lat="${rawCoorditares[0]}" data-lon="${rawCoorditares[1]}" data-name="${name}">
+    <button class="one-gpx-download" data-lat="${rawCoorditares[0]}" data-lon="${rawCoorditares[1]}" data-name="${name}" data-comment="${point.comment}">
         Скачать GPX файл этой точки
     </button>`
 
@@ -178,7 +182,8 @@ map.on('popupopen', function (e) {
       const lat = this.getAttribute('data-lat');
       const lon = this.getAttribute('data-lon');
       const name = this.getAttribute('data-name');
-      const gpxContent = generateGPX([{ lat, lon, name }]);
+      const comment = this.getAttribute('data-comment');
+      const gpxContent = generateGPX([{ lat, lon, name, comment }]);
       downloadGPX(`${name}.gpx`, gpxContent);
     });
   }
@@ -230,6 +235,7 @@ function generateGPX (points) {
   points.forEach(point => {
     gpx += `  <wpt lat="${point.lat}" lon="${point.lon}">
     <name>${point.name}</name>
+    <desc>${point.comment}</desc>
   </wpt>\n`
   })
 
@@ -269,9 +275,10 @@ async function getHistoryPoints () {
         const lat = rawCoorditares[0]
         const lon = rawCoorditares[1]
         const name = point.name
+        const comment = point.comment
         const circleText = name.split(' ')[1]
 
-        archivePoints.push({ lat, lon, name })
+        archivePoints.push({ lat, lon, name, comment })
         const marker = new L.Marker.SVGMarker([lat, lon], {
           iconOptions: {
             color: 'rgb(0,0,0)',
@@ -291,7 +298,7 @@ async function getHistoryPoints () {
     Рейтинг точки: ${point.rating}<br>
     Точку установил: ${point.installed}</b><br>
     ${point.comment}<br>
-    <button class="one-gpx-download" data-lat="${rawCoorditares[0]}" data-lon="${rawCoorditares[1]}" data-name="${name}">
+    <button class="one-gpx-download" data-lat="${rawCoorditares[0]}" data-lon="${rawCoorditares[1]}" data-name="${name}" data-comment="${point.comment}">
         Скачать GPX файл этой точки
     </button>`
         const popup = marker.bindPopup(label)
