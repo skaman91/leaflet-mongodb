@@ -10,8 +10,9 @@
 <body>
     <div id="map">
         <div id="msg" class="msg"></div>
-        <div id="screen-overlay" class="screen-blink">
-            <div id="overlay-text"></div>
+        <div id="screen-overlay"></div>
+        <div id="bg-text">
+            <div id="overlay-text">Расстояние до точки: 100 м</div>
         </div>
     </div>
     <button id="playSoundButton" style="display:none;">Включить звук</button>  <!-- Скрываем кнопку -->
@@ -21,4 +22,5 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.83.1/dist/L.Control.Locate.min.css" />
 <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.83.1/dist/L.Control.Locate.min.js" charset="utf-8"></script>
 <script type="module" src="main.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-gpx/1.7.0/gpx.min.js"></script>
 </html>

@@ -43,8 +43,7 @@
 
     #overlay-text {
         position: absolute;
-        background-color: #000;
-        top: 30%;
+        top: 45%;
         left: 50%;
         transform: translate(-50%, -50%);
         color: white;
@@ -52,4 +51,33 @@
         font-weight: bold;
         text-align: center;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+    }
+
+    #bg-text {
+        display: none;
+        position: fixed;
+        top: 0;
+        width: 100%;
+        height: 12%;
+        z-index: 99999;
+        pointer-events: none;
+        background-color: rgba(0, 0, 0, 0.7); /* Более темный фон для четкости */
+    }
+
+    .downloadGPX, .custom-button {
+        font-size: 0.8em;
+        background-color: white;
+        padding: 5px;
+        width: 18em;
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+        margin-bottom: 0;
+    }
+
+    .one-gpx-download {
+        background-color: #e8e7e7;
+        margin-top: 10px;
+        border-radius: 5px;
+        border: solid 1px #850202;
     }
