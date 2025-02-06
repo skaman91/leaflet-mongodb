@@ -176,16 +176,16 @@ await fetch('https://point-map.ru/points')
   })
 
 map.on('popupopen', function (e) {
-  const button = e.popup._contentNode.querySelector('.one-gpx-download');
+  const button = e.popup._contentNode.querySelector('.one-gpx-download')
   if (button) {
     button.addEventListener('click', function () {
-      const lat = this.getAttribute('data-lat');
-      const lon = this.getAttribute('data-lon');
-      const name = this.getAttribute('data-name');
-      const comment = this.getAttribute('data-comment');
-      const gpxContent = generateGPX([{ lat, lon, name, comment }]);
-      downloadGPX(`${name}.gpx`, gpxContent);
-    });
+      const lat = this.getAttribute('data-lat')
+      const lon = this.getAttribute('data-lon')
+      const name = this.getAttribute('data-name')
+      const comment = this.getAttribute('data-comment')
+      const gpxContent = generateGPX([{ lat, lon, name, comment }])
+      downloadGPX(`${name}.gpx`, gpxContent)
+    })
   }
 })
 
@@ -267,6 +267,12 @@ async function getHistoryPoints () {
     .then(data => {
       //History Markers
       for (const point of data) {
+        if (/^(точку украли|тестовая|тест)$/i.test(point.comment)) {
+          continue
+        }
+        if (point.name === 'Точка 88') {
+          continue
+        }
         const coordinatesField = /^(\d\d\.\d{4,}, \d\d\.\d{4,})$/i.test(point.coordinates)
         if (!coordinatesField) {
           continue
@@ -383,8 +389,8 @@ navigator.geolocation.watchPosition(
       }
       if (distance <= 30) {
         if (!playedSounds.has(marker)) {
-          playSound() // Воспроизводим звук
-          addScreenBlinkEffect() // Добавляем мерцание экрана
+          playSound()
+          addScreenBlinkEffect()
           playedSounds.add(marker) // Запоминаем, что звук для этой точки уже воспроизведен
         }
       }
@@ -400,7 +406,7 @@ navigator.geolocation.watchPosition(
   { enableHighAccuracy: true }
 )
 
-let activePoint = null // Текущая активная точка
+let activePoint = null
 
 function updateDistance (userLat, userLng) {
   if (!activePoint) return
@@ -428,10 +434,9 @@ function calculateDistance (lat1, lng1, lat2, lng2) {
   return earthRadius * c
 }
 
-// Обработчик клика по кнопке
 document.getElementById('playSoundButton').addEventListener('click', () => {
-  playSound() // Воспроизведение звука
-  addScreenBlinkEffect() // Добавляем мерцание экрана
+  playSound()
+  addScreenBlinkEffect()
 })
 
 document.getElementById('showHistory').addEventListener('click', () => {
