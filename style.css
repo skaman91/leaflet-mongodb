@@ -81,3 +81,47 @@
         border-radius: 5px;
         border: solid 1px #850202;
     }
+
+    .main-menu-buttons {
+        background-color: #e8e7e7;
+        margin-top: 10px;
+        border-radius: 5px;
+        border: solid 1px #850202;
+        display: flex;
+        flex-direction: column;
+        height: 2.5em;
+        width: 10em;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .main-menu-buttons:hover {
+        background-color: #b5b5b5;
+    }
+
+    .hide {
+        display: none;
+    }
+
+    .leaflet-control-measure {
+        background: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        border: 1px solid #333;
+        user-select: none;
+    }
+    .leaflet-control-measure.active {
+        background: #ff4d4d;
+        color: white;
+    }
+    .distance-label {
+        background: white;
+        padding: 4px;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: bold;
+        border: 1px solid #333;
+    }

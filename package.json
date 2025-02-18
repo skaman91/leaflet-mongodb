@@ -12,6 +12,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.19.2",
+    "express-session": "^1.18.1",
     "http": "^0.0.1-security",
     "leaflet": "^1.9.4",
     "leaflet-groupedlayercontrol": "^0.6.1",

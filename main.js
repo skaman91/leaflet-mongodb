@@ -2,6 +2,7 @@
 const map = L.map('map').setView([60.024828, 30.338195], 10)
 document.getElementById('msg').innerHTML = 'Загружаю точки...'
 let historyMarkers = []
+let archivePoints = []
 let buttonsContainer
 
 //osm Layer
@@ -23,6 +24,65 @@ const baseLayers = {
 }
 
 L.control.layers(baseLayers).addTo(map)
+
+setTimeout(() => {
+  const layersList = document.querySelector('.leaflet-control-layers-list')
+
+  if (layersList) {
+    function createButton (text, className, onClick) {
+      const button = document.createElement('button')
+      button.textContent = text
+      button.className = className
+      button.addEventListener('click', onClick)
+      return button
+    }
+
+    // Функции для переключения кнопок
+    function showHistory () {
+      clearMarkers()
+      getHistoryPoints()
+      showHistoryButton.style.display = 'none'
+      clearHistoryButton.style.display = 'flex'
+      historyButton.style.display = 'flex'
+    }
+
+    function clearHistory () {
+      clearMarkers()
+      clearHistoryButton.style.display = 'none'
+      showHistoryButton.style.display = 'flex'
+      historyButton.style.display = 'none'
+    }
+
+    // Функция скачивания GPX
+    function downloadGPXFile (filename, pointsData) {
+      const gpxContent = generateGPX(pointsData)
+      downloadGPX(filename, gpxContent)
+    }
+
+    // Кнопка "Скачать GPX актуальных точек"
+    const gpxActualButton = createButton('Скачать GPX актуальных точек', 'main-menu-buttons', () => {
+      downloadGPXFile('points.gpx', activePoint)
+    })
+
+    // Кнопка "Скачать архивные точки"
+    const historyButton = createButton('Скачать GPX архивных точек', 'main-menu-buttons', () => {
+      downloadGPXFile('points.gpx', historyMarkers)
+    })
+
+    // Кнопка "Показать историю"
+    const showHistoryButton = createButton('Показать историю', 'main-menu-buttons', showHistory)
+
+    // Кнопка "Очистить историю" (скрыта по умолчанию)
+    const clearHistoryButton = createButton('Очистить историю', 'main-menu-buttons', clearHistory)
+    clearHistoryButton.style.display = 'none'
+
+    // Добавляем кнопки в список слоёв
+    layersList.appendChild(showHistoryButton)
+    layersList.appendChild(clearHistoryButton)
+    layersList.appendChild(historyButton)
+    layersList.appendChild(gpxActualButton)
+  }
+}, 100)
 
 const locateControl = L.control.locate({
   position: 'topright', // Расположение кнопки на карте
@@ -105,9 +165,101 @@ function toggleButtons () {
   }
 }
 
+let firstPoint = null
+let secondPoint = null
+let line = null
+let distanceLabel = null
+let measuringMode = false // Флаг включения режима линейки
+
+// Кнопка для включения/выключения режима измерения
+const measureControl = L.control({ position: 'topleft' })
+measureControl.onAdd = function (map) {
+  const button = L.DomUtil.create('div', 'leaflet-control-measure')
+  button.innerHTML = '📐'
+
+  // Предотвращаем всплытие клика на карту
+  L.DomEvent.on(button, 'click', function (e) {
+    L.DomEvent.stopPropagation(e) // Останавливаем всплытие события
+    measuringMode = !measuringMode
+    button.classList.toggle('active', measuringMode)
+    resetMeasurement() // Сбрасываем измерения при переключении режима
+  })
+
+  return button
+}
+measureControl.addTo(map)
+
+// Функция обработки кликов
+function handleMeasurement (e) {
+  if (!measuringMode) return
+
+  if (!firstPoint) {
+    // Первый клик – рисуем первую точку (маленький кружок)
+    firstPoint = L.circleMarker(e.latlng, { radius: 4, color: 'black' }).addTo(map)
+  } else if (!secondPoint) {
+    // Второй клик – рисуем вторую точку и соединяем пунктирной линией
+    secondPoint = L.circleMarker(e.latlng, { radius: 4, color: 'black' }).addTo(map)
+    line = L.polyline([firstPoint.getLatLng(), secondPoint.getLatLng()], {
+      color: 'black',
+      dashArray: '8, 5'
+    }).addTo(map)
+
+    let distance = map.distance(firstPoint.getLatLng(), secondPoint.getLatLng()) / 1000 // в км
+
+    // Добавляем текст с расстоянием
+    distanceLabel = L.divIcon({
+      className: 'distance-label',
+      html: distance.toFixed(2) + ' км',
+      iconSize: [60, 20]
+    })
+
+    L.marker(line.getCenter(), { icon: distanceLabel }).addTo(map)
+  } else {
+    resetMeasurement()
+  }
+}
+
+// Обрабатываем клики по всей карте (основная линейка)
+map.on('click', handleMeasurement)
+
+// Функция обработки кликов по маркерам
+function addMeasurementToMarker (marker) {
+  marker.on('click', function (e) {
+    handleMeasurement(e) // Добавляем точку линейки
+    setTimeout(() => e.target.openPopup(), 10) // Открываем попап с небольшой задержкой
+  })
+}
+
+// Навешиваем обработчики на уже существующие маркеры
+map.eachLayer(layer => {
+  if (layer instanceof L.Marker) {
+    addMeasurementToMarker(layer)
+  }
+})
+
+// Если маркеры добавляются динамически, подписываемся на их появление
+map.on('layeradd', function (e) {
+  if (e.layer instanceof L.Marker) {
+    addMeasurementToMarker(e.layer)
+  }
+})
+
+// Функция сброса измерений линейки
+function resetMeasurement () {
+  if (firstPoint) map.removeLayer(firstPoint)
+  if (secondPoint) map.removeLayer(secondPoint)
+  if (line) map.removeLayer(line)
+  if (distanceLabel) map.eachLayer(layer => {
+    if (layer instanceof L.Marker && layer.options.icon === distanceLabel) {
+      map.removeLayer(layer)
+    }
+  })
+
+  firstPoint = secondPoint = line = distanceLabel = null
+}
+
 // Функция для воспроизведения звука
 function playSound () {
-  console.log('1111')
   const audio = new Audio('./sound_30.mp3')
 
   audio.play().then(() => {
@@ -131,7 +283,7 @@ await fetch('https://point-map.ru/points')
     //Markers
     let pointsArray = []
     for (const point of data) {
-      if (point.comment === 'точку украли' || point.comment === 'тестовая') {
+      if (point.comment === 'точку украли' || point.comment === 'тестовая' || point.comment === 'Новая точка, еще не устанавливалась') {
         continue
       }
       const rawCoorditares = point.coordinates.split(',')
@@ -167,7 +319,6 @@ await fetch('https://point-map.ru/points')
       popup.addTo(map)
       document.getElementById('msg').innerHTML = ''
     }
-    console.log('pointsArray', pointsArray)
     addGPXControl(pointsArray, 'actual')
   })
   .catch(error => {
@@ -200,7 +351,10 @@ function addGPXControl (points, status) {
       L.DomEvent.on(div, 'mousedown dblclick', L.DomEvent.stopPropagation)
         .on(div, 'click', function () {
           const gpxContent = generateGPX(points)
-          downloadGPX('points.gpx', gpxContent)
+          const date = new Date()
+          const formattedDate = `${String(date.getFullYear()).slice(2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}`
+
+          downloadGPX(`points-${formattedDate}.gpx`, gpxContent)
         })
 
       return div
@@ -217,7 +371,10 @@ function addGPXControl (points, status) {
       L.DomEvent.on(div, 'mousedown dblclick', L.DomEvent.stopPropagation)
         .on(div, 'click', function () {
           const gpxContent = generateGPX(points)
-          downloadGPX('historyPoints.gpx', gpxContent)
+          const date = new Date()
+          const formattedDate = `${String(date.getFullYear()).slice(2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}`
+
+          downloadGPX(`history-points-${formattedDate}.gpx`, gpxContent)
         })
 
       return div
@@ -255,7 +412,7 @@ function downloadGPX (filename, gpxContent) {
 }
 
 async function getHistoryPoints () {
-  let archivePoints = []
+  // let archivePoints = []
   document.getElementById('msg').innerHTML = 'Загружаю архивные точки...'
   await fetch('https://point-map.ru/pointsHistory')
     .then(response => {

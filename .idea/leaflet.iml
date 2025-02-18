@@ -11,5 +11,7 @@
     <orderEntry type="library" name="leaflet" level="application" />
     <orderEntry type="library" name="leaflet.locatecontrol" level="application" />
     <orderEntry type="library" name="leaflet-gpx" level="application" />
+    <orderEntry type="library" name="leaflet.polylinemeasure" level="application" />
+    <orderEntry type="library" name="leaflet-ruler" level="application" />
   </component>
 </module>
