@@ -280,20 +280,28 @@ await fetch('https://point-map.ru/points')
     return response.json()
   })
   .then(data => {
-    //Markers
     let pointsArray = []
+    let circles = {}
+
     for (const point of data) {
-      if (point.comment === 'точку украли' || point.comment === 'тестовая' || point.comment === 'Новая точка, еще не устанавливалась') {
+      if (['точку украли', 'тестовая', 'Новая точка, еще не устанавливалась'].includes(point.comment)) {
         continue
       }
-      const rawCoorditares = point.coordinates.split(',')
-      const lat = rawCoorditares[0]
-      const lon = rawCoorditares[1]
+      if (point.coordinates === ',') {
+        continue
+      }
+
+      const rawCoordinates = point.coordinates.split(',')
+      const lat = parseFloat(rawCoordinates[0])
+      const lon = parseFloat(rawCoordinates[1])
+      if (isNaN(lat) || isNaN(lon)) continue // Проверка на корректность координат
+
       const name = point.name
       const circleText = name.split(' ')[1]
       const comment = point.comment
 
       pointsArray.push({ lat, lon, name, comment })
+
       const marker = new L.Marker.SVGMarker([lat, lon], {
         iconOptions: {
           color: setRangColor(point.rang),
@@ -303,23 +311,71 @@ await fetch('https://point-map.ru/points')
           fontWeight: 800
         }
       })
+
       marker.addTo(map)
-      markers.push(marker) // Добавляем маркер в массив
+      markers.push(marker)
 
-      const label = `
-    <b>${name}<br>${rawCoorditares}<br>
-    Рейтинг точки: ${point.rating}<br>
-    Точку установил: ${point.installed}</b><br>
-    ${point.comment}<br>
-    <button class="one-gpx-download" data-lat="${rawCoorditares[0]}" data-lon="${rawCoorditares[1]}" data-name="${name}" data-comment="${point.comment}">
-        Скачать GPX файл этой точки
-    </button>`
+      const popupContent = `
+        <b>${name}</b><br>
+        Координаты: ${lat}, ${lon}<br>
+        Рейтинг точки: ${point.rating}<br>
+        Точку установил: ${point.installed}<br>
+        ${point.comment}<br>
+        <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${point.comment}">
+            Скачать GPX файл этой точки
+        </button><br>
+        <label><input type="checkbox" class="show-circle" data-lat="${lat}" data-lon="${lon}">Показать зону 5 км</label>
+      `
+      marker.bindPopup(popupContent)
 
-      const popup = marker.bindPopup(label)
-      popup.addTo(map)
-      document.getElementById('msg').innerHTML = ''
+      // Обработчик при открытии попапа
+      marker.on('popupopen', function (e) {
+        setTimeout(() => {
+          const popupEl = e.popup._contentNode
+          if (!popupEl) return
+
+          const checkbox = popupEl.querySelector('.show-circle')
+          if (!checkbox) return
+
+          const key = `${lat},${lon}`
+          checkbox.checked = !!circles[key]
+
+          checkbox.addEventListener('change', function () {
+            if (checkbox.checked) {
+              if (!circles[key]) {
+                circles[key] = L.circle([lat, lon], {
+                  radius: 5000,
+                  color: 'green',
+                  fillColor: 'blue',
+                  fillOpacity: 0.1
+                }).addTo(map)
+              }
+            } else {
+              if (circles[key]) {
+                map.removeLayer(circles[key])
+                delete circles[key]
+              }
+            }
+          })
+        }, 100)
+      })
     }
+
     addGPXControl(pointsArray, 'actual')
+    document.getElementById('msg').innerHTML = ''
+
+    // Делегирование событий для кнопки "Скачать GPX"
+    document.addEventListener('click', function (event) {
+      if (event.target.classList.contains('one-gpx-download')) {
+        const lat = event.target.dataset.lat
+        const lon = event.target.dataset.lon
+        const name = event.target.dataset.name
+        const comment = event.target.dataset.comment
+
+        downloadOnePointGPX(lat, lon, name, comment)
+      }
+    })
+
   })
   .catch(error => {
     console.error('There was a problem with the fetch operation:', error)
@@ -335,6 +391,7 @@ map.on('popupopen', function (e) {
       const name = this.getAttribute('data-name')
       const comment = this.getAttribute('data-comment')
       const gpxContent = generateGPX([{ lat, lon, name, comment }])
+      console.log('gpxContent', gpxContent)
       downloadGPX(`${name}.gpx`, gpxContent)
     })
   }
@@ -411,8 +468,27 @@ function downloadGPX (filename, gpxContent) {
   document.body.removeChild(link)
 }
 
+function downloadOnePointGPX (lat, lon, name, comment) {
+  const gpxData = `<?xml version="1.0" encoding="UTF-8"?>
+  <gpx version="1.1" creator="PointMap">
+    <wpt lat="${lat}" lon="${lon}">
+      <name>${name}</name>
+      <desc>${comment}</desc>
+    </wpt>
+  </gpx>`
+
+  const blob = new Blob([gpxData], { type: 'application/gpx+xml' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `${name}.gpx`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}
+
 async function getHistoryPoints () {
-  // let archivePoints = []
+  let archivePoints = []
+  let circles = {}
   document.getElementById('msg').innerHTML = 'Загружаю архивные точки...'
   await fetch('https://point-map.ru/pointsHistory')
     .then(response => {
@@ -435,8 +511,11 @@ async function getHistoryPoints () {
           continue
         }
         const rawCoorditares = point.coordinates.split(',')
-        const lat = rawCoorditares[0]
-        const lon = rawCoorditares[1]
+        const lat = parseFloat(rawCoorditares[0])
+        const lon = parseFloat(rawCoorditares[1])
+
+        if (isNaN(lat) || isNaN(lon)) continue
+
         const name = point.name
         const comment = point.comment
         const circleText = name.split(' ')[1]
@@ -454,18 +533,50 @@ async function getHistoryPoints () {
         historyMarkers.push(marker)
 
         marker.addTo(map)
-        markers.push(marker) // Добавляем маркер в массив
+        markers.push(marker)
 
         const label = `
     <b>${name}<br>${rawCoorditares}<br>
     Рейтинг точки: ${point.rating}<br>
     Точку установил: ${point.installed}</b><br>
     ${point.comment}<br>
-    <button class="one-gpx-download" data-lat="${rawCoorditares[0]}" data-lon="${rawCoorditares[1]}" data-name="${name}" data-comment="${point.comment}">
+    <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${point.comment}">
         Скачать GPX файл этой точки
-    </button>`
+    </button><br>
+    <label><input type="checkbox" class="show-circle" data-lat="${lat}" data-lon="${lon}">Показать зону 5 км</label>
+`
         const popup = marker.bindPopup(label)
-        popup.addTo(map)
+        // popup.addTo(map)
+        marker.on('popupopen', function (e) {
+          setTimeout(() => {
+            const popupEl = e.popup._contentNode
+            if (!popupEl) return
+
+            const checkbox = popupEl.querySelector('.show-circle')
+            if (!checkbox) return
+
+            const key = `${lat},${lon}`
+            checkbox.checked = !!circles[key]
+
+            checkbox.addEventListener('change', function () {
+              if (checkbox.checked) {
+                if (!circles[key]) {
+                  circles[key] = L.circle([lat, lon], {
+                    radius: 5000,
+                    color: 'green',
+                    fillColor: 'blue',
+                    fillOpacity: 0.1
+                  }).addTo(map)
+                }
+              } else {
+                if (circles[key]) {
+                  map.removeLayer(circles[key])
+                  delete circles[key]
+                }
+              }
+            })
+          }, 100)
+        })
         document.getElementById('msg').innerHTML = ''
       }
       console.log('archive points', archivePoints)
@@ -529,13 +640,13 @@ navigator.geolocation.watchPosition(
     const userLat = position.coords.latitude
     const userLng = position.coords.longitude
 
-    // Проверяем, есть ли точки в пределах 100 м
+    // Проверяем, есть ли точки в пределах 300 м
     for (const marker of markers) {
       const markerLat = marker._latlng[0]
       const markerLng = marker._latlng[1]
       const distance = calculateDistance(userLat, userLng, markerLat, markerLng)
 
-      if (distance <= 100) {
+      if (distance <= 300) {
         if (!activePoint || activePoint.lat !== markerLat || activePoint.lng !== markerLng) {
           // Если новая точка в зоне, активируем экран
           activePoint = { lat: markerLat, lng: markerLng }
