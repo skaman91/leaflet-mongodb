@@ -299,6 +299,8 @@ await fetch('https://point-map.ru/points')
       const name = point.name
       const circleText = name.split(' ')[1]
       const comment = point.comment
+      const installTime = point.takeTimestamp
+      const rang = point.rang || ''
 
       pointsArray.push({ lat, lon, name, comment })
 
@@ -316,11 +318,12 @@ await fetch('https://point-map.ru/points')
       markers.push(marker)
 
       const popupContent = `
-        <b>${name}</b><br>
+        <b>${rang} ${name}</b><br>
         Координаты: ${lat}, ${lon}<br>
         Рейтинг точки: ${point.rating}<br>
         Точку установил: ${point.installed}<br>
         ${point.comment}<br>
+        Точка установлена: ${getDaysSinceInstallation(point.takeTimestamp)} ${declOfNum(getDaysSinceInstallation(point.takeTimestamp), 'дней')} назад <br>
         <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${point.comment}">
             Скачать GPX файл этой точки
         </button><br>
@@ -700,6 +703,34 @@ function calculateDistance (lat1, lng1, lat2, lng2) {
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return earthRadius * c
+}
+
+// кол-во дней с даты (timestamp)
+function getDaysSinceInstallation (timestamp) {
+  const currentDate = new Date()
+  const installationDate = new Date(timestamp)
+  const diffInMs = currentDate - installationDate
+
+  return Math.floor(diffInMs / (1000 * 60 * 60 * 24))
+}
+
+function declOfNum (number, label) {
+  const labels = {
+    'балл': ['балл', 'балла', 'баллов'],
+    'час': ['час', 'часа', 'часов'],
+    'мин': ['минуту', 'минуты', 'минут'],
+    'дней': ['день', 'дня', 'дней']
+  }
+
+  const map = labels[label]
+
+  if (!map) {
+    return label
+  }
+
+  const cases = [2, 0, 1, 1, 1, 2]
+
+  return map[(number % 100 > 4 && number % 100 < 20) ? 2 : cases[(number % 10 < 5) ? number % 10 : 5]]
 }
 
 document.getElementById('playSoundButton').addEventListener('click', () => {

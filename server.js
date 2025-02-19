@@ -31,7 +31,7 @@ app.get('/points', async (req, res) => {
         rating: data.rating,
         installed: data.installed,
         rang: data.rang,
-        takeTimestamp: data.takeTimestamp
+        takeTimestamp: data.takeTimestamp,
       }
       points.push(point)
     }
