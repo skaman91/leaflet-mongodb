@@ -323,8 +323,8 @@ await fetch('https://point-map.ru/points')
         Рейтинг точки: ${point.rating}<br>
         Точку установил: ${point.installed}<br>
         ${point.comment}<br>
-        Точка установлена: ${getDaysSinceInstallation(point.takeTimestamp)} ${declOfNum(getDaysSinceInstallation(point.takeTimestamp), 'дней')} назад <br>
-        <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${point.comment}">
+        Точка установлена: ${getDaysSinceInstallation(installTime)} ${declOfNum(getDaysSinceInstallation(installTime), 'дней')} назад <br>
+        <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${comment}">
             Скачать GPX файл этой точки
         </button><br>
         <label><input type="checkbox" class="show-circle" data-lat="${lat}" data-lon="${lon}">Показать зону 5 км</label>
