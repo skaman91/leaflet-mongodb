@@ -57,7 +57,17 @@ app.get('/pointsHistory', async (req, res) => {
     const db = client.db('liteoffroad')
     const collection = db.collection('historyPoints')
 
-    const cursor = await collection.find()
+    const pointName = req.query.name
+    console.log('pointName', pointName)
+    let cursor
+
+    if (pointName) {
+      console.log(`Загрузка историии точки: ${pointName}`)
+      cursor = collection.find({ point: pointName }).sort({ takeTimestamp: 1 }) // История конкретной точки
+    } else {
+      console.log('Загрузка общей истории точек')
+      cursor = collection.find().sort({ takeTimestamp: 1 }) // Полная история
+    }
     let i = 0
     const historyPoints = []
 

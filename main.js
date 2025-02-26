@@ -4,6 +4,10 @@ document.getElementById('msg').innerHTML = 'Загружаю точки...'
 let historyMarkers = []
 let archivePoints = []
 let buttonsContainer
+let historyLines = {}
+let litePoints = 0
+let hardPoints = 0
+let elsePoints = 0
 
 //osm Layer
 const OSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -317,6 +321,14 @@ await fetch('https://point-map.ru/points')
       marker.addTo(map)
       markers.push(marker)
 
+      if (rang === 'Лайт') {
+        litePoints += 1
+      } else if (rang === 'Хард') {
+        hardPoints += 1
+      } else {
+        elsePoints += 1
+      }
+
       const popupContent = `
         <b>${rang} ${name}</b><br>
         Координаты: ${lat}, ${lon}<br>
@@ -327,6 +339,7 @@ await fetch('https://point-map.ru/points')
         <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${comment}">
             Скачать GPX файл этой точки
         </button><br>
+        <button class="load-history" data-name="${name}">История перемещения точки</button><br>
         <label><input type="checkbox" class="show-circle" data-lat="${lat}" data-lon="${lon}">Показать зону 5 км</label>
       `
       marker.bindPopup(popupContent)
@@ -360,12 +373,33 @@ await fetch('https://point-map.ru/points')
               }
             }
           })
+
+          // Обработчик загрузки истории точки
+          const historyBtn = popupEl.querySelector('.load-history')
+          if (historyBtn) {
+            historyBtn.addEventListener('click', async function () {
+              const pointName = this.dataset.name
+              await loadPointHistory(pointName, marker)
+            })
+          }
         }, 100)
       })
     }
 
     addGPXControl(pointsArray, 'actual')
     document.getElementById('msg').innerHTML = ''
+
+    const infoDiv = document.createElement('div')
+    infoDiv.id = 'points-info'
+    infoDiv.innerHTML = `
+  <div>🟢 Лайт: <span id="lite-count">0</span></div>
+  <div>🔴 Хард: <span id="hard-count">0</span></div>
+  <div>🔵 Прочее: <span id="else-count">0</span></div>
+`
+    document.body.appendChild(infoDiv)
+    document.getElementById('lite-count').textContent = litePoints
+    document.getElementById('hard-count').textContent = hardPoints
+    document.getElementById('else-count').textContent = elsePoints
 
     // Делегирование событий для кнопки "Скачать GPX"
     document.addEventListener('click', function (event) {
@@ -384,6 +418,155 @@ await fetch('https://point-map.ru/points')
     console.error('There was a problem with the fetch operation:', error)
     document.getElementById('msg').innerHTML = 'Ошибка. Попробуйте обновить страницу.'
   })
+
+/**
+ * Загружает историю указанной точки и строит линию на карте
+ */
+async function loadPointHistory(pointName, marker) {
+  try {
+    let circles = {}
+    let latlngs = []
+    const response = await fetch(`https://point-map.ru/pointsHistory?name=${encodeURIComponent(pointName)}`)
+    console.log('response', response)
+    if (!response.ok) {
+      throw new Error(`Ошибка загрузки истории: ${response.statusText}`)
+    }
+    const historyData = await response.json()
+
+    if (!historyData || historyData.length === 0) {
+      alert('История этой точки отсутствует.')
+      return
+    }
+
+    for (const point of historyData) {
+      if (/^(точку украли|тестовая|тест)$/i.test(point.comment)) {
+        continue
+      }
+      if (point.name === 'Точка 88') {
+        continue
+      }
+      const coordinatesField = /^(\d\d\.\d{4,}, \d\d\.\d{4,})$/i.test(point.coordinates)
+      if (!coordinatesField) {
+        continue
+      }
+      const rawCoorditares = point.coordinates.split(',')
+      const lat = parseFloat(rawCoorditares[0])
+      const lon = parseFloat(rawCoorditares[1])
+
+      if (isNaN(lat) || isNaN(lon)) continue
+      if (!isNaN(lat) && !isNaN(lon)) {
+        latlngs.push([lat, lon])
+      }
+
+      const name = point.name
+      const comment = point.comment
+      const circleText = name.split(' ')[1]
+
+      archivePoints.push({ lat, lon, name, comment })
+      const marker = new L.Marker.SVGMarker([lat, lon], {
+        iconOptions: {
+          color: 'rgb(0,0,0)',
+          circleText: circleText,
+          circleRatio: 0.65,
+          fontSize: 10,
+          fontWeight: 800
+        }
+      })
+      historyMarkers.push(marker)
+
+
+      marker.addTo(map)
+      markers.push(marker)
+
+      const label = `
+    <b>${name}<br>${rawCoorditares}<br>
+    Рейтинг точки: ${point.rating}<br>
+    Точку установил: ${point.installed}</b><br>
+    ${point.comment}<br>
+    <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${point.comment}">
+        Скачать GPX файл этой точки
+    </button><br>
+    <label><input type="checkbox" class="show-circle" data-lat="${lat}" data-lon="${lon}">Показать зону 5 км</label>
+`
+      const popup = marker.bindPopup(label)
+      // popup.addTo(map)
+      marker.on('popupopen', function (e) {
+        setTimeout(() => {
+          const popupEl = e.popup._contentNode
+          if (!popupEl) return
+
+          const checkbox = popupEl.querySelector('.show-circle')
+          if (!checkbox) return
+
+          const key = `${lat},${lon}`
+          checkbox.checked = !!circles[key]
+
+          checkbox.addEventListener('change', function () {
+            if (checkbox.checked) {
+              if (!circles[key]) {
+                circles[key] = L.circle([lat, lon], {
+                  radius: 5000,
+                  color: 'green',
+                  fillColor: 'blue',
+                  fillOpacity: 0.1
+                }).addTo(map)
+              }
+            } else {
+              if (circles[key]) {
+                map.removeLayer(circles[key])
+                delete circles[key]
+              }
+            }
+          })
+        }, 100)
+      })
+      document.getElementById('msg').innerHTML = ''
+    }
+
+    if (latlngs.length > 1) {
+      // Удаляем старую линию, если уже была нарисована
+      if (historyLines[pointName]) {
+        map.removeLayer(historyLines[pointName])
+      }
+
+      // Создаем новую линию
+      const polyline = L.polyline(latlngs, {
+        color: 'blue',
+        weight: 3,
+        opacity: 0.7
+      }).addTo(map)
+
+      historyLines[pointName] = polyline
+      clearButton.style.display = 'inline-block'
+    } else {
+      alert('Недостаточно данных для построения истории.')
+    }
+  } catch (error) {
+    console.error('Ошибка загрузки истории точки:', error)
+    alert('Не удалось загрузить историю точки.')
+  }
+}
+
+/**
+ * Функция очистки всех архивных точек и линий
+ */
+function clearHistory() {
+  // Удаляем линии
+  Object.values(historyLines).forEach(line => map.removeLayer(line))
+  historyLines = {}
+
+  // Удаляем маркеры архивных точек
+  historyMarkers.forEach(marker => map.removeLayer(marker))
+  historyMarkers = []
+  clearButton.style.display = 'none'
+}
+
+
+const clearButton = L.DomUtil.create('button', 'custom-button', buttonsContainer)
+clearButton.innerHTML = 'Очистить историю'
+clearButton.id = 'clearButton'
+clearButton.style.display = 'none'
+L.DomEvent.on(clearButton, 'click', clearHistory)
 
 map.on('popupopen', function (e) {
   const button = e.popup._contentNode.querySelector('.one-gpx-download')

@@ -129,3 +129,21 @@
     .show-circle {
         margin-top: 1em;
     }
+
+    .load-history {
+        margin-top: 0.7em;
+    }
+
+    #points-info {
+        position: absolute;
+        bottom: 20px;
+        right: 10px;
+        background: rgba(255,255,255,0.35);
+        padding: 10px;
+        border-radius: 4px;
+        z-index: 10000;
+
+        @media screen and (max-width: 710px) {
+            font-size: 10px;
+        }
+    }
