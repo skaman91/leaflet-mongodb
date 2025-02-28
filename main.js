@@ -286,6 +286,7 @@ await fetch('https://point-map.ru/points')
   .then(data => {
     let pointsArray = []
     let circles = {}
+    let historyLines = {} // Хранение линий истории для каждой точки
 
     for (const point of data) {
       if (['точку украли', 'тестовая', 'Новая точка, еще не устанавливалась'].includes(point.comment)) {
@@ -295,12 +296,16 @@ await fetch('https://point-map.ru/points')
         continue
       }
 
+      if (!point.installed) {
+        continue
+      }
+
       const rawCoordinates = point.coordinates.split(',')
       const lat = parseFloat(rawCoordinates[0])
       const lon = parseFloat(rawCoordinates[1])
       if (isNaN(lat) || isNaN(lon)) continue // Проверка на корректность координат
 
-      const name = point.name
+      const name = point.point
       const circleText = name.split(' ')[1]
       const comment = point.comment
       const installTime = point.takeTimestamp
@@ -442,7 +447,7 @@ async function loadPointHistory(pointName, marker) {
       if (/^(точку украли|тестовая|тест)$/i.test(point.comment)) {
         continue
       }
-      if (point.name === 'Точка 88') {
+      if (point.point === 'Точка 88') {
         continue
       }
       const coordinatesField = /^(\d\d\.\d{4,}, \d\d\.\d{4,})$/i.test(point.coordinates)
@@ -458,7 +463,7 @@ async function loadPointHistory(pointName, marker) {
         latlngs.push([lat, lon])
       }
 
-      const name = point.name
+      const name = point.point
       const comment = point.comment
       const circleText = name.split(' ')[1]
 
@@ -478,10 +483,14 @@ async function loadPointHistory(pointName, marker) {
       marker.addTo(map)
       markers.push(marker)
 
+      if (point.install) {
+        continue
+      }
+
       const label = `
     <b>${name}<br>${rawCoorditares}<br>
     Рейтинг точки: ${point.rating}<br>
-    Точку установил: ${point.installed}</b><br>
+    Точку взял: ${point.installed}</b><br>
     ${point.comment}<br>
     <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${point.comment}">
         Скачать GPX файл этой точки
@@ -634,7 +643,7 @@ function generateGPX (points) {
 
   points.forEach(point => {
     gpx += `  <wpt lat="${point.lat}" lon="${point.lon}">
-    <name>${point.name}</name>
+    <name>${point.point}</name>
     <desc>${point.comment}</desc>
   </wpt>\n`
   })
@@ -689,7 +698,7 @@ async function getHistoryPoints () {
         if (/^(точку украли|тестовая|тест)$/i.test(point.comment)) {
           continue
         }
-        if (point.name === 'Точка 88') {
+        if (point.point === 'Точка 88') {
           continue
         }
         const coordinatesField = /^(\d\d\.\d{4,}, \d\d\.\d{4,})$/i.test(point.coordinates)
@@ -702,7 +711,7 @@ async function getHistoryPoints () {
 
         if (isNaN(lat) || isNaN(lon)) continue
 
-        const name = point.name
+        const name = point.point
         const comment = point.comment
         const circleText = name.split(' ')[1]
 
@@ -724,7 +733,7 @@ async function getHistoryPoints () {
         const label = `
     <b>${name}<br>${rawCoorditares}<br>
     Рейтинг точки: ${point.rating}<br>
-    Точку установил: ${point.installed}</b><br>
+    Точку взял: ${point.installed}</b><br>
     ${point.comment}<br>
     <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${point.comment}">
         Скачать GPX файл этой точки
