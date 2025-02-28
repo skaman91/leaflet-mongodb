@@ -4,97 +4,47 @@ import cors from 'cors'
 import express from 'express'
 
 const client = new MongoClient(MONGO_URL)
+await client.connect() // Подключаемся один раз
 console.log('Connected successfully to db')
+
+const db = client.db('liteoffroad')
+const pointsCollection = db.collection('points')
+const historyCollection = db.collection('historyPoints')
 
 const PORT = 3000
 const app = express()
-app.use(cors())
+
+app.use(express.json()) // Добавляем JSON-парсер
+app.use(cors()) // Разрешаем CORS
+
+// Логирование запросов
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`)
+  next()
+})
 
 app.get('/points', async (req, res) => {
   try {
-    await client.connect()
-    console.log('Connected to the MongoDB database.')
-
-    const db = client.db('liteoffroad')
-    const collection = db.collection('points')
-
-    const cursor = await collection.find()
-    let i = 0
-    const points = []
-
-    for (let data = await cursor.next(); data !== null; data = await cursor.next()) {
-      i++
-      const point = {
-        name: data.point,
-        coordinates: data.coordinates,
-        comment: data.comment,
-        rating: data.rating,
-        installed: data.installed,
-        rang: data.rang,
-        takeTimestamp: data.takeTimestamp,
-      }
-      points.push(point)
-    }
-    if (points.length) {
-
-      console.log('Starting')
-    }
-    console.log('[server]: points is ready %)')
+    const points = await pointsCollection.find().toArray()
     res.status(200).json(points)
   } catch (err) {
     res.status(500).json({ error: 'Database error' })
     console.error('Error fetching data from database', err)
-  } finally {
-    await client.close()
   }
 })
 
 app.get('/pointsHistory', async (req, res) => {
   try {
-    await client.connect()
-    console.log('Connected to the MongoDB database.')
-
-    const db = client.db('liteoffroad')
-    const collection = db.collection('historyPoints')
-
     const pointName = req.query.name
     console.log('pointName', pointName)
-    let cursor
 
-    if (pointName) {
-      console.log(`Загрузка историии точки: ${pointName}`)
-      cursor = collection.find({ point: pointName }).sort({ takeTimestamp: 1 }) // История конкретной точки
-    } else {
-      console.log('Загрузка общей истории точек')
-      cursor = collection.find().sort({ takeTimestamp: 1 }) // Полная история
-    }
-    let i = 0
-    const historyPoints = []
+    const query = pointName ? { point: pointName } : {}
+    const historyPoints = await historyCollection.find(query).sort({ takeTimestamp: 1 }).toArray()
 
-    for (let data = await cursor.next(); data !== null; data = await cursor.next()) {
-      i++
-      const point = {
-        name: data.point,
-        coordinates: data.coordinates,
-        comment: data.comment,
-        rating: data.rating,
-        installed: data.installed,
-        rang: data.rang,
-        takeTimestamp: data.takeTimestamp
-      }
-      historyPoints.push(point)
-    }
-    if (historyPoints.length) {
-
-      console.log('Starting get historyPoints')
-    }
-    console.log('[server]: historyPoints is ready %)')
     res.status(200).json(historyPoints)
   } catch (err) {
     res.status(500).json({ error: 'Database error' })
     console.error('Error fetching historyPoints from database', err)
-  } finally {
-    await client.close()
   }
 })
 
