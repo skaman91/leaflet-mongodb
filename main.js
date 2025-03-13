@@ -8,6 +8,7 @@ let historyLines = {}
 let litePoints = 0
 let hardPoints = 0
 let elsePoints = 0
+let noInstall = 0
 
 //osm Layer
 const OSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -131,6 +132,8 @@ const ButtonsControl = L.Control.extend({
     return buttonsContainer
   }
 })
+// Создаем попап для отображения списка точек на руках
+const noInstallPopup = L.popup()
 
 // Добавление кнопок на карту
 map.addControl(new ButtonsControl())
@@ -262,6 +265,68 @@ function resetMeasurement () {
   firstPoint = secondPoint = line = distanceLabel = null
 }
 
+// ✅ Кнопка поиска 🔍 (поиск по координатам)
+const searchControl = L.control({ position: 'topleft' })
+searchControl.onAdd = function (map) {
+  const button = L.DomUtil.create('div', 'leaflet-control-measure')
+  button.innerHTML = '🔍'
+
+  L.DomEvent.on(button, 'click', function (e) {
+    L.DomEvent.stopPropagation(e)
+
+    const input = prompt('Введите координаты:', '')
+    if (!input) return // Если нажали "Отмена", ничего не делать
+
+    const coodinates = parseCoordinates(input)
+    const [lat, lng] = coodinates.split(',').map(coord => parseFloat(coord.trim()))
+
+    if (isNaN(lat) || isNaN(lng)) {
+      alert('Ошибка: введите координаты в формате \'55.751244, 37.618423\'')
+      return
+    }
+
+    // Добавляем маркер на карту
+    const marker = L.marker([lat, lng]).addTo(map).bindPopup(`${lat}, ${lng}`).openPopup()
+    map.setView([lat, lng], 13) // Центрируем карту
+  })
+
+  return button
+}
+searchControl.addTo(map)
+
+document.addEventListener('DOMContentLoaded', function () {
+  // ✅ Создаем элемент для крестика
+  const crosshair = document.createElement('div')
+  crosshair.className = 'map-crosshair'
+  document.body.appendChild(crosshair)
+
+  // ✅ Создаем элемент для отображения координат
+  const coordDisplay = document.createElement('div')
+  coordDisplay.className = 'coord-display'
+  document.body.appendChild(coordDisplay)
+
+  // ✅ Функция обновления координат
+  function updateCoordinates () {
+    const center = map.getCenter()
+    const coordsText = `${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`
+    coordDisplay.innerText = `${coordsText}`
+    coordDisplay.setAttribute('data-coords', coordsText) // Корректное сохранение
+  }
+
+  // ✅ Обработчик клика для копирования координат
+  coordDisplay.addEventListener('click', function () {
+    const coords = coordDisplay.getAttribute('data-coords') // Читаем атрибут с координатами
+    navigator.clipboard.writeText(coords).then(() => {
+      coordDisplay.innerText = `✅ Скопировано!`
+      setTimeout(updateCoordinates, 1000) // Вернуть координаты через 1 сек.
+    }).catch(err => console.error('Ошибка копирования:', err))
+  })
+
+  // ✅ Обновляем координаты при движении карты
+  map.on('move', updateCoordinates)
+  updateCoordinates() // Обновляем при загрузке
+})
+
 // Функция для воспроизведения звука
 function playSound () {
   const audio = new Audio('./sound_30.mp3')
@@ -287,16 +352,27 @@ await fetch('https://point-map.ru/points')
     let pointsArray = []
     let circles = {}
     let historyLines = {} // Хранение линий истории для каждой точки
+    showNoInstallPopup(data)
+    data.sort((a, b) => {
+      // Извлекаем число из имени (после слова "Точка")
+      const numberA = parseInt(a.point.split(' ')[1], 10)
+      const numberB = parseInt(b.point.split(' ')[1], 10)
+
+      // Сортировка по возрастанию
+      return numberA - numberB
+    })
 
     for (const point of data) {
       if (['точку украли', 'тестовая', 'Новая точка, еще не устанавливалась'].includes(point.comment)) {
         continue
       }
-      if (point.coordinates === ',') {
+
+      if (!point.install) {
+        noInstall += 1
         continue
       }
 
-      if (!point.installed) {
+      if (point.coordinates === ',') {
         continue
       }
 
@@ -306,12 +382,16 @@ await fetch('https://point-map.ru/points')
       if (isNaN(lat) || isNaN(lon)) continue // Проверка на корректность координат
 
       const name = point.point
-      const circleText = name.split(' ')[1]
+      const rating = point.rating
+      const circleText = `<div style="text-align: center; margin-top: -3.8em">
+               <strong>${name.split(' ')[1]}</strong><br>
+               <span style="font-size: 8px; color: #686868;">${rating}</span>
+             </div>`
       const comment = point.comment
       const installTime = point.takeTimestamp
       const rang = point.rang || ''
 
-      pointsArray.push({ lat, lon, name, comment })
+      pointsArray.push({ lat, lon, name, comment, rating })
 
       const marker = new L.Marker.SVGMarker([lat, lon], {
         iconOptions: {
@@ -337,7 +417,7 @@ await fetch('https://point-map.ru/points')
       const popupContent = `
         <b>${rang} ${name}</b><br>
         Координаты: ${lat}, ${lon}<br>
-        Рейтинг точки: ${point.rating}<br>
+        Рейтинг точки: ${rating}<br>
         Точку установил: ${point.installed}<br>
         ${point.comment}<br>
         Точка установлена: ${getDaysSinceInstallation(installTime)} ${declOfNum(getDaysSinceInstallation(installTime), 'дней')} назад <br>
@@ -400,11 +480,28 @@ await fetch('https://point-map.ru/points')
   <div>🟢 Лайт: <span id="lite-count">0</span></div>
   <div>🔴 Хард: <span id="hard-count">0</span></div>
   <div>🔵 Прочее: <span id="else-count">0</span></div>
+  <div id="noInstall">На руках: <span id="noInstall-count">0</span></div>
 `
     document.body.appendChild(infoDiv)
     document.getElementById('lite-count').textContent = litePoints
     document.getElementById('hard-count').textContent = hardPoints
     document.getElementById('else-count').textContent = elsePoints
+    document.getElementById('noInstall-count').textContent = noInstall
+
+// Обработчик клика на строку "На руках"
+    document.getElementById('noInstall').addEventListener('click', function (event) {
+      const rect = event.target.getBoundingClientRect()
+      const clickPoint = map.containerPointToLatLng([
+        rect.left + rect.width / 2 - 130,
+        rect.top - 70
+      ])
+
+      const noInstallPoints = data.filter(point => !point.install)
+
+      showNoInstallPopup(noInstallPoints)
+
+      noInstallPopup.setLatLng(clickPoint).openOn(map)
+    })
 
     // Делегирование событий для кнопки "Скачать GPX"
     document.addEventListener('click', function (event) {
@@ -424,10 +521,20 @@ await fetch('https://point-map.ru/points')
     document.getElementById('msg').innerHTML = 'Ошибка. Попробуйте обновить страницу.'
   })
 
+// Функция для отображения попапа с точками на руках
+function showNoInstallPopup (points) {
+  let popupContent = '<div><b>Точки на руках, когда и кем взяты</b></div>'
+  points.forEach(point => {
+    const daysSinceTake = getDaysSinceInstallation(point.takeTimestamp)
+    popupContent += `<div>${point.point} - ${daysSinceTake} ${declOfNum(daysSinceTake, 'дней')} назад, Взял: ${point.installed}</div>`
+  })
+  noInstallPopup.setContent(popupContent)
+}
+
 /**
  * Загружает историю указанной точки и строит линию на карте
  */
-async function loadPointHistory(pointName, marker) {
+async function loadPointHistory (pointName, marker) {
   try {
     let circles = {}
     let latlngs = []
@@ -478,7 +585,6 @@ async function loadPointHistory(pointName, marker) {
         }
       })
       historyMarkers.push(marker)
-
 
       marker.addTo(map)
       markers.push(marker)
@@ -559,7 +665,7 @@ async function loadPointHistory(pointName, marker) {
 /**
  * Функция очистки всех архивных точек и линий
  */
-function clearHistory() {
+function clearHistory () {
   // Удаляем линии
   Object.values(historyLines).forEach(line => map.removeLayer(line))
   historyLines = {}
@@ -569,7 +675,6 @@ function clearHistory() {
   historyMarkers = []
   clearButton.style.display = 'none'
 }
-
 
 const clearButton = L.DomUtil.create('button', 'custom-button', buttonsContainer)
 clearButton.innerHTML = 'Очистить историю'
@@ -640,10 +745,10 @@ function generateGPX (points) {
   let gpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="PointMapBot" xmlns="http://www.topografix.com/GPX/1/1">
 `
-
+  console.log('points', points)
   points.forEach(point => {
     gpx += `  <wpt lat="${point.lat}" lon="${point.lon}">
-    <name>${point.point}</name>
+    <name>${point.name} / ${point.rating}б</name>
     <desc>${point.comment}</desc>
   </wpt>\n`
   })
@@ -883,6 +988,30 @@ function updateDistance (userLat, userLng) {
   }
 }
 
+function parseCoordinates (input) {
+  input = input.trim().replace(/[^\d.,°′″ NSEW+\-]/g, '') // Удаляем лишние символы
+
+  // Если уже в правильном формате
+  let decimalMatch = input.match(/^([+\-]?\d{1,3}\.\d+),?\s*([+\-]?\d{1,3}\.\d+)$/)
+  if (decimalMatch) {
+    return `${parseFloat(decimalMatch[1]).toFixed(6)}, ${parseFloat(decimalMatch[2]).toFixed(6)}`
+  }
+
+  // Обработка формата с градусами, минутами и секундами
+  let dmsMatch = input.match(/(\d{1,3})°(\d{1,2})′(\d{1,2}(?:\.\d+)?)″?\s*([NSEW])/g)
+  if (dmsMatch && dmsMatch.length === 2) {
+    let coords = dmsMatch.map(dms => {
+      let [, deg, min, sec, dir] = dms.match(/(\d{1,3})°(\d{1,2})′(\d{1,2}(?:\.\d+)?)″?\s*([NSEW])/)
+      let decimal = parseInt(deg) + parseInt(min) / 60 + parseFloat(sec) / 3600
+      if (dir === 'S' || dir === 'W') decimal *= -1
+      return decimal.toFixed(5)
+    })
+    return [coords[0], coords[1]]
+  }
+
+  return null
+}
+
 // Функция расчета расстояния (в метрах)
 function calculateDistance (lat1, lng1, lat2, lng2) {
   const earthRadius = 6371000 // Радиус Земли в метрах
@@ -897,13 +1026,12 @@ function calculateDistance (lat1, lng1, lat2, lng2) {
   return earthRadius * c
 }
 
-// кол-во дней с даты (timestamp)
 function getDaysSinceInstallation (timestamp) {
   const currentDate = new Date()
   const installationDate = new Date(timestamp)
-  const diffInMs = currentDate - installationDate
 
-  return Math.floor(diffInMs / (1000 * 60 * 60 * 24))
+  // Разница в днях, считая смену даты
+  return Math.ceil((currentDate - installationDate) / (1000 * 60 * 60 * 24))
 }
 
 function declOfNum (number, label) {

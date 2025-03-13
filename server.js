@@ -4,7 +4,7 @@ import cors from 'cors'
 import express from 'express'
 
 const client = new MongoClient(MONGO_URL)
-await client.connect() // Подключаемся один раз
+await client.connect()
 console.log('Connected successfully to db')
 
 const db = client.db('liteoffroad')
@@ -25,7 +25,12 @@ app.use((req, res, next) => {
 
 app.get('/points', async (req, res) => {
   try {
-    const points = await pointsCollection.find().toArray()
+    const points = await pointsCollection.find({
+      comment: { $ne: 'точку украли' },
+      name: { $ne: 'Точка 88' }
+    })
+      .sort({ point: 1 })
+      .toArray()
     res.status(200).json(points)
   } catch (err) {
     res.status(500).json({ error: 'Database error' })
@@ -36,7 +41,9 @@ app.get('/points', async (req, res) => {
 app.get('/pointsHistory', async (req, res) => {
   try {
     const pointName = req.query.name
-    console.log('pointName', pointName)
+    if (pointName) {
+      console.log('pointName', pointName)
+    }
 
     const query = pointName ? { point: pointName } : {}
     const historyPoints = await historyCollection.find(query).sort({ takeTimestamp: 1 }).toArray()
