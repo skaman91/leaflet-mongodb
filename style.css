@@ -234,7 +234,7 @@
         }
     }
 
-    .auth-container {
-        display: block;
+    #auth-container {
+        display: none;
         z-index: 100000;
     }

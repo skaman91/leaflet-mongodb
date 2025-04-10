@@ -1,4 +1,4 @@
-// import { FETCH_URL } from './auth/data.mjs'
+
 const map = L.map('map').setView([60.024828, 30.338195], 10)
 document.getElementById('msg').innerHTML = 'Загружаю точки...'
 let historyMarkers = []
@@ -196,6 +196,33 @@ measureControl.onAdd = function (map) {
 }
 measureControl.addTo(map)
 
+// window.addEventListener('load', function () {
+//   // Получаем параметры из URL после успешной авторизации
+//   const urlParams = new URLSearchParams(window.location.search)
+//
+//   if (urlParams.has('id')) {
+//     console.log('urlParams', urlParams)
+//     const userId = urlParams.get('id')
+//     const firstName = urlParams.get('first_name')
+//     const lastName = urlParams.get('last_name')
+//     const username = urlParams.get('username')
+//
+//     // ✅ Выводим в консоль (можно отправить на сервер)
+//     console.log(`✅ Авторизован: ${firstName} ${lastName} (@${username})`)
+//
+//     // ✅ Можно показать приветствие на сайте
+//     document.getElementById('auth-container').innerHTML = `
+//             <p>Привет, ${firstName}!</p>
+//             <button id="logout">Выйти</button>
+//         `
+//
+//     // Добавляем кнопку "Выйти"
+//     document.getElementById('logout').addEventListener('click', () => {
+//       window.location.href = '/'
+//     })
+//   }
+// })
+
 // Функция обработки кликов
 function handleMeasurement (e) {
   if (!measuringMode) return
@@ -264,6 +291,46 @@ function resetMeasurement () {
 
   firstPoint = secondPoint = line = distanceLabel = null
 }
+
+// //маркер клубного сервиса
+// const myIcon = L.icon({
+//   iconUrl: '../img/service.png', // путь к твоему изображению
+//   iconSize: [30, 45], // размер иконки
+//   iconAnchor: [16, 32], // точка "якоря" (куда указывает маркер)
+//   popupAnchor: [0, -32] // точка, откуда будет всплывать popup
+// });
+//
+// // 4. Добавление маркера
+// const marker = L.marker([59.991278, 30.444749], { icon: myIcon }).addTo(map);
+// marker.bindPopup("<b>Клубный сервис Точка 4х4</b>")
+
+const serviceMarker = new L.Marker.SVGMarker([59.991278, 30.444749], {
+  iconOptions: {
+    color: 'rgb(200,116,6)',
+    circleText: '🛠',
+    circleRatio: 0.75,
+    fontSize: 17
+    // iconSize: L.point(28,40)
+  }
+});
+
+serviceMarker.addTo(map);
+
+const popupContent = `
+  <div style="display: flex; align-items: flex-start;">
+    <div style="flex: 1; padding-right: 10px;">
+      <b>Клубный сервис Точка 4х4</b><br>
+      Если у Вас сломалась машина, Вы можете обратиться к нам в клубный внедорожный сервис 🚩Точка 4х4🚩<br>
+      Шафировский пр., 10А, бокс 12-9.<br>
+      Есть возможность выехать на место поломки. <br>
+      Телефон для связи: +79006356625
+    </div>
+    <img src="img/service.png" alt="Точка 4х4" style="width:50px;">
+  </div>
+`
+
+serviceMarker.bindPopup(popupContent);
+
 
 // ✅ Кнопка поиска 🔍 (поиск по координатам)
 const searchControl = L.control({ position: 'topleft' })
@@ -416,7 +483,7 @@ await fetch('https://point-map.ru/points')
 
       const popupContent = `
         <b>${rang} ${name}</b><br>
-        Координаты: ${lat}, ${lon}<br>
+        Координаты: <span id="copy-coords" style="cursor: pointer">${lat}, ${lon}</span><br>
         Рейтинг точки: ${rating}<br>
         Точку установил: ${point.installed}<br>
         ${point.comment}<br>
@@ -469,6 +536,80 @@ await fetch('https://point-map.ru/points')
           }
         }, 100)
       })
+      marker.on('popupopen', () => {
+        document.addEventListener('click', function copyHandler(event) {
+          if (event.target && event.target.id === 'copy-coords') {
+            const button = event.target; // Получаем кнопку
+            const originalText = button.innerText; // Сохраняем оригинальный текст
+
+            const textToCopy = `${lat}, ${lon}`;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+              button.innerHTML = `<span style="color: green; font-weight: bold;">✅ Скопировано!</span>`
+              // Через 1 секунду возвращаем обратно координаты
+              setTimeout(() => {
+                button.innerText = originalText;
+              }, 1000);
+            }).catch(err => console.error('Ошибка копирования:', err));
+
+            // Убираем обработчик после копирования (чтобы не дублировался)
+            document.removeEventListener('click', copyHandler);
+          }
+        });
+      });
+
+
+    }
+    const pointId = getQueryParam('id')
+    const pointType = getQueryParam('type')
+
+    if (pointId) {
+      if (pointType === 'install') {
+        fetch(`https://point-map.ru/points/?id=${pointId}`)  // Запрос к API
+          .then(response => response.json())
+          .then(point => {
+            const rawCoordinates = point[0].coordinates.split(',')
+            const lat = parseFloat(rawCoordinates[0])
+            const lon = parseFloat(rawCoordinates[1])
+            map.setView([lat, lon], 10)
+          })
+          .catch(err => console.error('Ошибка загрузки точки:', err))
+      } else if (pointType === 'take') {
+
+        fetch(`https://point-map.ru/pointsHistory/?id=${pointId}`)  // Запрос к API
+          .then(response => response.json())
+          .then(historyPoint => {
+            const point = historyPoint[0]
+            const circleText = `<div style="text-align: center; margin-top: -3.8em">
+               <strong>${point.point.split(' ')[1]}</strong><br>
+               <span style="font-size: 8px; color: #686868;">${point.rating}</span>
+             </div>`
+            const rawCoordinates = point.coordinates.split(',')
+            const lat = parseFloat(rawCoordinates[0])
+            const lon = parseFloat(rawCoordinates[1])
+            const marker = new L.Marker.SVGMarker([lat, lon], {
+              iconOptions: {
+                color: 'rgb(0,0,0)',
+                circleText,
+                circleRatio: 0.65,
+                fontSize: 10,
+                fontWeight: 800
+              }
+            })
+
+            marker.addTo(map)
+            map.setView([lat, lon], 10)
+
+            const popupContent = `
+        <b>${point.point}</b><br>
+        Координаты: ${lat}, ${lon}<br>
+        Рейтинг точки: ${point.rating}<br>
+        Точку взял: ${point.installed}<br>
+        ${point.comment}
+      `
+            marker.bindPopup(popupContent)
+          })
+          .catch(err => console.error('Ошибка загрузки точки:', err))
+      }
     }
 
     addGPXControl(pointsArray, 'actual')
@@ -520,6 +661,12 @@ await fetch('https://point-map.ru/points')
     console.error('There was a problem with the fetch operation:', error)
     document.getElementById('msg').innerHTML = 'Ошибка. Попробуйте обновить страницу.'
   })
+
+// Получаю параметры из урла
+function getQueryParam (param) {
+  const urlParams = new URLSearchParams(window.location.search)
+  return urlParams.get(param)
+}
 
 // Функция для отображения попапа с точками на руках
 function showNoInstallPopup (points) {
@@ -889,7 +1036,10 @@ async function getHistoryPoints () {
   addGPXControl(archivePoints, 'history')
 }
 
-function setRangColor (rang) {
+function setRangColor (rang, pointId) {
+  if (pointId) {
+    return 'rgb(255,152,0)'
+  }
   if (!rang) {
     return 'rgb(84,84,243)'
   }

@@ -8,6 +8,18 @@
     <title>Застрянь друга Liteoffroad</title>
 </head>
 <body>
+<div id="auth-container">
+<!--    <script async src="https://telegram.org/js/telegram-widget.js?22"-->
+<!--            data-telegram-login="liteoffroad_bot"-->
+<!--            data-size="large"-->
+<!--            data-auth-url="https://point-map.ru/auth"-->
+<!--            data-request-access="write">-->
+<!--    </script>-->
+
+    <a href="https://oauth.telegram.org/auth?bot_id=7303674118&origin=https://point-map.ru&request_access=write">
+        Войти через Telegram
+    </a>
+</div>
     <div id="map">
         <div id="msg" class="msg"></div>
         <div id="screen-overlay"></div>
@@ -16,14 +28,6 @@
         </div>
     </div>
     <button id="playSoundButton" style="display:none;">Включить звук</button>
-<!--    <div id="auth-container">-->
-<!--        <script async src="https://telegram.org/js/telegram-widget.js?22"-->
-<!--                data-telegram-login="dedopede_bot"-->
-<!--                data-size="large"-->
-<!--                data-auth-url="https://point-map.ru/auth"-->
-<!--                data-request-access="write">-->
-<!--        </script>-->
-<!--    </div>-->
 </body>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="svg-icon.js"></script>
