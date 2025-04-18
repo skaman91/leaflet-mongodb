@@ -13,5 +13,6 @@
     <orderEntry type="library" name="leaflet-gpx" level="application" />
     <orderEntry type="library" name="leaflet.polylinemeasure" level="application" />
     <orderEntry type="library" name="leaflet-ruler" level="application" />
+    <orderEntry type="library" name="leaflet-routing-machine" level="application" />
   </component>
 </module>

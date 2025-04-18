@@ -126,10 +126,6 @@
         border: 1px solid #333;
     }
 
-    .show-circle {
-        margin-top: 1em;
-    }
-
     .load-history {
         margin-top: 0.7em;
     }
@@ -237,4 +233,34 @@
     #auth-container {
         display: none;
         z-index: 100000;
+    }
+
+    .start-button {
+        background-color: #b7f65a;
+        color: #000000;
+        padding: 5px 10px;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        font-weight: bold;
+        font-family: sans-serif;
+        user-select: none;
+        transition: background-color 0.3s ease;
+    }
+
+    .start-button:hover {
+        background-color: #f8e94d;
+    }
+
+    .circle-toggle {
+        display: flex;
+        align-items: center;
+        margin: 1em 0 1em 0;
+        gap: 5px; /* расстояние между чекбоксом и текстом */
+        cursor: pointer;
+    }
+
+    .circle-toggle input[type="checkbox"] {
+        margin: 0;
+        vertical-align: middle;
     }

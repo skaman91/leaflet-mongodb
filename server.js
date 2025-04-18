@@ -3,6 +3,9 @@ import { BOT_TOKEN, MONGO_URL } from './auth/data.mjs'
 import cors from 'cors'
 import express from 'express'
 import crypto from 'crypto'
+import axios from 'axios'
+import fs from 'fs'
+import https from 'https'
 
 const client = new MongoClient(MONGO_URL)
 await client.connect()
@@ -11,6 +14,7 @@ console.log('Connected successfully to db')
 const db = client.db('liteoffroad')
 const pointsCollection = db.collection('points')
 const historyCollection = db.collection('historyPoints')
+const stateCollection = db.collection('state')
 
 const PORT = 3000
 const app = express()
@@ -18,63 +22,98 @@ const app = express()
 app.use(express.json()) // Добавляем JSON-парсер
 app.use(cors()) // Разрешаем CORS
 
-// function checkTelegramAuth (data) {
-//   const secret = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest()
+function checkTelegramAuth(data) {
+  const { hash, ...fields } = data
+
+  const secret = crypto.createHash('sha256').update(BOT_TOKEN).digest()
+
+  const sortedData = Object.keys(fields)
+    .sort()
+    .map(key => `${key}=${fields[key]}`)
+    .join('\n')
+  console.log('sortedData', sortedData)
+
+  const calculatedHash = crypto
+    .createHmac('sha256', secret)
+    .update(sortedData)
+    .digest('hex')
+
+  return calculatedHash === hash
+}
+
+
+// Авторизация
+app.get('/auth', (req, res) => {
+  if (checkTelegramAuth(req.query)) {
+    console.log('Авторизация успешна!')
+    res.redirect('/')
+  } else {
+    res.status(403).send('❌ Ошибка авторизации!')
+  }
+})
+
+// загрузка фото точки
+app.get('/photo/telegram/:fileId', async (req, res) => {
+  const fileId = req.params.fileId
+
+  try {
+    const tgRes = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getFile`, {
+      params: { file_id: fileId }
+    })
+
+    if (!tgRes.data.ok) {
+      console.error('❌ Ошибка Telegram API:', tgRes.data)
+      return res.status(500).send('Ошибка Telegram API')
+    }
+
+    const filePath = tgRes.data.result.file_path
+    const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`
+
+    const fileStream = await axios({
+      url: fileUrl,
+      method: 'GET',
+      responseType: 'stream'
+    })
+
+    res.setHeader('Content-Type', fileStream.headers['content-type'] || 'application/octet-stream')
+    fileStream.data.pipe(res)
+  } catch (err) {
+    console.error('🔥 Ошибка при получении изображения:', err.message)
+    if (err.response?.data) {
+      console.error('🔍 Telegram API ответ:', err.response.data)
+    }
+    res.status(500).send('Ошибка загрузки изображения')
+  }
+})
+
+
+
+// app.get('/auth', (req, res) => {
+//   const data = req.query
 //
-//   // Преобразуем строку запроса в объект
-//   const params = new URLSearchParams(data)
-//   const hash = params.get('hash')
-//   params.delete('hash')
+//   if (!verifyTelegramData(data)) {
+//     return res.status(403).send('Ошибка авторизации!')
+//   }
 //
-//   // Сортируем параметры
-//   const sortedParams = [...params.entries()]
-//     .map(([key, value]) => `${key}=${value}`)
+//   res.send(`Привет, ${data.first_name}! Авторизация успешна.`)
+// })
+//
+// // 📌 Функция проверки данных Telegram
+// function verifyTelegramData (data) {
+//   console.log('data', data)
+//   const checkHash = data.hash
+//   const secretKey = crypto.createHmac('sha256', BOT_TOKEN).update('WebAppData').digest()
+//
+//   const sortedData = Object.keys(data)
+//     .filter(key => key !== 'hash')
 //     .sort()
+//     .map(key => `${key}=${data[key]}`)
 //     .join('\n')
 //
-//   // Создаем подпись
-//   const calculatedHash = crypto.createHmac('sha256', secret)
-//     .update(sortedParams)
-//     .digest('hex')
+//   const hash = crypto.createHmac('sha256', secretKey).update(sortedData).digest('hex')
 //
-//   return calculatedHash === hash
+//   return hash === checkHash
 // }
-//
-// // Пример использования (на сервере)
-// app.get('/auth', (req, res) => {
-//   console.log('123')
-//   if (checkTelegramAuth(req.query)) {
-//     res.send('✅ Авторизация успешна!')
-//   } else {
-//     res.status(403).send('❌ Ошибка авторизации!')
-//   }
-// })
-
-app.get("/auth", (req, res) => {
-  const data = req.query;
-
-  if (!verifyTelegramData(data)) {
-    return res.status(403).send("Ошибка авторизации!");
-  }
-
-  res.send(`Привет, ${data.first_name}! Авторизация успешна.`);
-});
-
-// 📌 Функция проверки данных Telegram
-function verifyTelegramData(data) {
-  const checkHash = data.hash;
-  const secretKey = crypto.createHmac("sha256", BOT_TOKEN).update("WebAppData").digest();
-
-  const sortedData = Object.keys(data)
-    .filter(key => key !== "hash")
-    .sort()
-    .map(key => `${key}=${data[key]}`)
-    .join("\n");
-
-  const hash = crypto.createHmac("sha256", secretKey).update(sortedData).digest("hex");
-
-  return hash === checkHash;
-}
 
 // Логирование запросов
 app.use((req, res, next) => {
@@ -114,7 +153,7 @@ app.get('/pointsHistory', async (req, res) => {
 
     const query = pointName ? { point: pointName } : {}
     if (id) {
-      query.id = parseInt(id, 10); // Фильтруем по конкретному ID
+      query.id = parseInt(id, 10) // Фильтруем по конкретному ID
     }
     console.log('query', query)
     const historyPoints = await historyCollection.find(query).sort({ takeTimestamp: 1 }).toArray()
@@ -130,6 +169,13 @@ app.use((req, res) => {
   res.status(404).send('404 Not Found')
 })
 
-app.listen(PORT, () => {
-  console.log(`Server is listening on port ${PORT}`)
+const options = {
+  key: fs.readFileSync('./auth/point-map.ru.key'),
+  cert: fs.readFileSync('./auth/point-map.ru.crt') // или .pem
+}
+
+https.createServer(options, app).listen(PORT, () => {
+  console.log(`HTTPS Server is running on port ${PORT}`)
 })
+
+

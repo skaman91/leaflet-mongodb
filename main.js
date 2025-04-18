@@ -1,3 +1,4 @@
+import { RADIUS } from './const.js'
 
 const map = L.map('map').setView([60.024828, 30.338195], 10)
 document.getElementById('msg').innerHTML = 'Загружаю точки...'
@@ -21,6 +22,26 @@ const googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}
   subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
   attribution: '<b>Liteoffroad "Застрянь друга"</b>'
 })
+
+// Кнопка начать играть
+const StartButton = L.Control.extend({
+  options: {
+    position: 'topright'
+  },
+
+  onAdd: function () {
+    const container = L.DomUtil.create('div', 'start-button')
+    container.innerHTML = '🚀 Играть'
+
+    container.onclick = function () {
+      window.open('https://t.me/liteoffroad_bot', '_blank') // Заменить на @username бота
+    }
+
+    return container
+  }
+})
+
+map.addControl(new StartButton())
 
 //layer Controls
 const baseLayers = {
@@ -149,6 +170,28 @@ new L.GPX('./lib/50km-area.gpx', {
   get_marker: function () { return null }
 }).addTo(map)
 
+new L.GPX('./lib/север.gpx', {
+  async: true,
+  polyline_options: { color: 'green', weight: 3, opacity: 1 },
+  marker_options: {
+    startIconUrl: '',
+    endIconUrl: '',
+    wptIconUrls: {}
+  },
+  get_marker: function () { return null }
+}).addTo(map)
+
+new L.GPX('./lib/граница восток4.gpx', {
+  async: true,
+  polyline_options: { color: 'green', weight: 3, opacity: 1 },
+  marker_options: {
+    startIconUrl: '',
+    endIconUrl: '',
+    wptIconUrls: {}
+  },
+  get_marker: function () { return null }
+}).addTo(map)
+
 // Функция удаления маркеров
 function clearMarkers () {
   historyMarkers.forEach(marker => map.removeLayer(marker))
@@ -196,32 +239,32 @@ measureControl.onAdd = function (map) {
 }
 measureControl.addTo(map)
 
-// window.addEventListener('load', function () {
-//   // Получаем параметры из URL после успешной авторизации
-//   const urlParams = new URLSearchParams(window.location.search)
-//
-//   if (urlParams.has('id')) {
-//     console.log('urlParams', urlParams)
-//     const userId = urlParams.get('id')
-//     const firstName = urlParams.get('first_name')
-//     const lastName = urlParams.get('last_name')
-//     const username = urlParams.get('username')
-//
-//     // ✅ Выводим в консоль (можно отправить на сервер)
-//     console.log(`✅ Авторизован: ${firstName} ${lastName} (@${username})`)
-//
-//     // ✅ Можно показать приветствие на сайте
-//     document.getElementById('auth-container').innerHTML = `
-//             <p>Привет, ${firstName}!</p>
-//             <button id="logout">Выйти</button>
-//         `
-//
-//     // Добавляем кнопку "Выйти"
-//     document.getElementById('logout').addEventListener('click', () => {
-//       window.location.href = '/'
-//     })
-//   }
-// })
+window.addEventListener('load', function () {
+  // Получаем параметры из URL после успешной авторизации
+  const urlParams = new URLSearchParams(window.location.search)
+
+  if (urlParams.has('id')) {
+    console.log('urlParams', urlParams)
+    const userId = urlParams.get('id')
+    const firstName = urlParams.get('first_name')
+    const lastName = urlParams.get('last_name')
+    const username = urlParams.get('username')
+
+    // ✅ Выводим в консоль (можно отправить на сервер)
+    console.log(`✅ Авторизован: ${firstName} ${lastName} (@${username})`)
+
+    // ✅ Можно показать приветствие на сайте
+    document.getElementById('auth-container').innerHTML = `
+            <p>Привет, ${firstName}!</p>
+            <button id="logout">Выйти</button>
+        `
+
+    // Добавляем кнопку "Выйти"
+    document.getElementById('logout').addEventListener('click', () => {
+      window.location.href = '/'
+    })
+  }
+})
 
 // Функция обработки кликов
 function handleMeasurement (e) {
@@ -292,29 +335,17 @@ function resetMeasurement () {
   firstPoint = secondPoint = line = distanceLabel = null
 }
 
-// //маркер клубного сервиса
-// const myIcon = L.icon({
-//   iconUrl: '../img/service.png', // путь к твоему изображению
-//   iconSize: [30, 45], // размер иконки
-//   iconAnchor: [16, 32], // точка "якоря" (куда указывает маркер)
-//   popupAnchor: [0, -32] // точка, откуда будет всплывать popup
-// });
-//
-// // 4. Добавление маркера
-// const marker = L.marker([59.991278, 30.444749], { icon: myIcon }).addTo(map);
-// marker.bindPopup("<b>Клубный сервис Точка 4х4</b>")
-
 const serviceMarker = new L.Marker.SVGMarker([59.991278, 30.444749], {
   iconOptions: {
     color: 'rgb(200,116,6)',
     circleText: '🛠',
     circleRatio: 0.75,
-    fontSize: 17
+    fontSize: 14
     // iconSize: L.point(28,40)
   }
-});
+})
 
-serviceMarker.addTo(map);
+serviceMarker.addTo(map)
 
 const popupContent = `
   <div style="display: flex; align-items: flex-start;">
@@ -329,8 +360,7 @@ const popupContent = `
   </div>
 `
 
-serviceMarker.bindPopup(popupContent);
-
+serviceMarker.bindPopup(popupContent)
 
 // ✅ Кнопка поиска 🔍 (поиск по координатам)
 const searchControl = L.control({ position: 'topleft' })
@@ -482,19 +512,71 @@ await fetch('https://point-map.ru/points')
       }
 
       const popupContent = `
-        <b>${rang} ${name}</b><br>
-        Координаты: <span id="copy-coords" style="cursor: pointer">${lat}, ${lon}</span><br>
-        Рейтинг точки: ${rating}<br>
-        Точку установил: ${point.installed}<br>
-        ${point.comment}<br>
-        Точка установлена: ${getDaysSinceInstallation(installTime)} ${declOfNum(getDaysSinceInstallation(installTime), 'дней')} назад <br>
-        <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${comment}">
-            Скачать GPX файл этой точки
-        </button><br>
-        <button class="load-history" data-name="${name}">История перемещения точки</button><br>
-        <label><input type="checkbox" class="show-circle" data-lat="${lat}" data-lon="${lon}">Показать зону 5 км</label>
-      `
+  <b>${rang} ${name}</b><br>
+  Координаты: <span id="copy-coords" style="cursor: pointer">${lat}, ${lon}</span><br>
+  Рейтинг точки: ${rating}<br>
+  Точку установил: ${point.installed}<br>
+  ${point.comment}<br>
+  Точка установлена: ${getDaysSinceInstallation(installTime)} ${declOfNum(getDaysSinceInstallation(installTime), 'дней')} назад <br>
+  <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${comment}">
+    Скачать GPX файл этой точки
+  </button><br>
+  <button class="load-history" data-name="${name}">История перемещения точки</button><br>
+  <label class="circle-toggle">
+    <input type="checkbox" class="show-circle" data-lat="${lat}" data-lon="${lon}">
+    Показать зону ${RADIUS} метров
+  </label>
+  <!-- Изображение в попапе, изначально маленькое -->
+  <div style="display: flex; align-items: center;">
+    <img id="popup-photo" src="https://point-map.ru/photo/telegram/${point.photo}" 
+      style="width: 100%; cursor: pointer; margin-right: 10px;" alt="Фото">
+  </div>
+`
+
       marker.bindPopup(popupContent)
+
+// Используем делегирование событий для обработки клика
+      marker.on('popupopen', () => {
+        // Находим элемент попапа и добавляем обработчик для клика по изображениям внутри
+        const popupElement = marker.getPopup().getElement()
+        popupElement.addEventListener('click', function (event) {
+          // Проверяем, был ли клик по изображению
+          if (event.target && event.target.id === 'popup-photo') {
+            openFullSizeImage(event.target.src)
+          }
+        })
+      })
+
+// Функция для открытия изображения в полном размере
+      function openFullSizeImage (imageUrl) {
+        // Создаем модальное окно
+        const modal = document.createElement('div')
+        modal.style.position = 'fixed'
+        modal.style.top = '0'
+        modal.style.left = '0'
+        modal.style.width = '100%'
+        modal.style.height = '100%'
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'
+        modal.style.display = 'flex'
+        modal.style.justifyContent = 'center'
+        modal.style.alignItems = 'center'
+        modal.style.zIndex = '9999'
+
+        // Создаем изображение
+        const img = document.createElement('img')
+        img.src = imageUrl
+        img.style.maxWidth = '90%'
+        img.style.maxHeight = '90%'
+        img.style.cursor = 'pointer'
+
+        // Закрытие модального окна при клике на изображение
+        img.addEventListener('click', () => {
+          document.body.removeChild(modal)
+        })
+
+        modal.appendChild(img)
+        document.body.appendChild(modal)
+      }
 
       // Обработчик при открытии попапа
       marker.on('popupopen', function (e) {
@@ -512,7 +594,7 @@ await fetch('https://point-map.ru/points')
             if (checkbox.checked) {
               if (!circles[key]) {
                 circles[key] = L.circle([lat, lon], {
-                  radius: 5000,
+                  radius: RADIUS,
                   color: 'green',
                   fillColor: 'blue',
                   fillOpacity: 0.1
@@ -537,34 +619,34 @@ await fetch('https://point-map.ru/points')
         }, 100)
       })
       marker.on('popupopen', () => {
-        document.addEventListener('click', function copyHandler(event) {
+        document.addEventListener('click', function copyHandler (event) {
           if (event.target && event.target.id === 'copy-coords') {
-            const button = event.target; // Получаем кнопку
-            const originalText = button.innerText; // Сохраняем оригинальный текст
+            const button = event.target // Получаем кнопку
+            const originalText = button.innerText // Сохраняем оригинальный текст
 
-            const textToCopy = `${lat}, ${lon}`;
+            const textToCopy = `${lat}, ${lon}`
             navigator.clipboard.writeText(textToCopy).then(() => {
               button.innerHTML = `<span style="color: green; font-weight: bold;">✅ Скопировано!</span>`
               // Через 1 секунду возвращаем обратно координаты
               setTimeout(() => {
-                button.innerText = originalText;
-              }, 1000);
-            }).catch(err => console.error('Ошибка копирования:', err));
+                button.innerText = originalText
+              }, 1000)
+            }).catch(err => console.error('Ошибка копирования:', err))
 
             // Убираем обработчик после копирования (чтобы не дублировался)
-            document.removeEventListener('click', copyHandler);
+            document.removeEventListener('click', copyHandler)
           }
-        });
-      });
-
+        })
+      })
 
     }
     const pointId = getQueryParam('id')
     const pointType = getQueryParam('type')
+    const point = getQueryParam('point')
 
     if (pointId) {
-      if (pointType === 'install') {
-        fetch(`https://point-map.ru/points/?id=${pointId}`)  // Запрос к API
+      if (pointType === 'install' && point) {
+        fetch(`https://point-map.ru/points/?point=${pointId}`)  // Запрос к API
           .then(response => response.json())
           .then(point => {
             const rawCoordinates = point[0].coordinates.split(',')
@@ -748,8 +830,10 @@ async function loadPointHistory (pointName, marker) {
     <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${point.comment}">
         Скачать GPX файл этой точки
     </button><br>
-    <label><input type="checkbox" class="show-circle" data-lat="${lat}" data-lon="${lon}">Показать зону 5 км</label>
-`
+    <label class="circle-toggle">
+      <input type="checkbox" class="show-circle" data-lat="${lat}" data-lon="${lon}">
+      Показать зону ${RADIUS} метров
+    </label>`
       const popup = marker.bindPopup(label)
       // popup.addTo(map)
       marker.on('popupopen', function (e) {
@@ -990,8 +1074,10 @@ async function getHistoryPoints () {
     <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${point.comment}">
         Скачать GPX файл этой точки
     </button><br>
-    <label><input type="checkbox" class="show-circle" data-lat="${lat}" data-lon="${lon}">Показать зону 5 км</label>
-`
+    <label class="circle-toggle">
+      <input type="checkbox" class="show-circle" data-lat="${lat}" data-lon="${lon}">
+      Показать зону ${RADIUS} метров
+    </label>`
         const popup = marker.bindPopup(label)
         // popup.addTo(map)
         marker.on('popupopen', function (e) {
@@ -1009,7 +1095,7 @@ async function getHistoryPoints () {
               if (checkbox.checked) {
                 if (!circles[key]) {
                   circles[key] = L.circle([lat, lon], {
-                    radius: 5000,
+                    radius: RADIUS,
                     color: 'green',
                     fillColor: 'blue',
                     fillOpacity: 0.1
@@ -1208,6 +1294,9 @@ document.getElementById('playSoundButton').addEventListener('click', () => {
   addScreenBlinkEffect()
 })
 
-document.getElementById('showHistory').addEventListener('click', () => {
-  getHistoryPoints()
-})
+const showHistoryBtn = document.getElementById('showHistory')
+if (showHistoryBtn) {
+  showHistoryBtn.addEventListener('click', () => {
+    getHistoryPoints()
+  })
+}
