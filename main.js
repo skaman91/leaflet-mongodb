@@ -170,27 +170,27 @@ new L.GPX('./lib/50km-area.gpx', {
   get_marker: function () { return null }
 }).addTo(map)
 
-new L.GPX('./lib/север.gpx', {
-  async: true,
-  polyline_options: { color: 'green', weight: 3, opacity: 1 },
-  marker_options: {
-    startIconUrl: '',
-    endIconUrl: '',
-    wptIconUrls: {}
-  },
-  get_marker: function () { return null }
-}).addTo(map)
-
-new L.GPX('./lib/граница восток4.gpx', {
-  async: true,
-  polyline_options: { color: 'green', weight: 3, opacity: 1 },
-  marker_options: {
-    startIconUrl: '',
-    endIconUrl: '',
-    wptIconUrls: {}
-  },
-  get_marker: function () { return null }
-}).addTo(map)
+// new L.GPX('./lib/север.gpx', {
+//   async: true,
+//   polyline_options: { color: 'green', weight: 3, opacity: 1 },
+//   marker_options: {
+//     startIconUrl: '',
+//     endIconUrl: '',
+//     wptIconUrls: {}
+//   },
+//   get_marker: function () { return null }
+// }).addTo(map)
+//
+// new L.GPX('./lib/граница восток4.gpx', {
+//   async: true,
+//   polyline_options: { color: 'green', weight: 3, opacity: 1 },
+//   marker_options: {
+//     startIconUrl: '',
+//     endIconUrl: '',
+//     wptIconUrls: {}
+//   },
+//   get_marker: function () { return null }
+// }).addTo(map)
 
 // Функция удаления маркеров
 function clearMarkers () {
@@ -391,7 +391,7 @@ searchControl.onAdd = function (map) {
 }
 searchControl.addTo(map)
 
-document.addEventListener('DOMContentLoaded', function () {
+// document.addEventListener('DOMContentLoaded', function () {
   // ✅ Создаем элемент для крестика
   const crosshair = document.createElement('div')
   crosshair.className = 'map-crosshair'
@@ -422,7 +422,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // ✅ Обновляем координаты при движении карты
   map.on('move', updateCoordinates)
   updateCoordinates() // Обновляем при загрузке
-})
+// })
 
 // Функция для воспроизведения звука
 function playSound () {
