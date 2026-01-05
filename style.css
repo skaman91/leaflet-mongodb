@@ -220,7 +220,7 @@
         cursor: pointer;
 
         @media screen and (max-width: 710px) {
-            bottom: 14.5em;
+            bottom: 19em;
             left: 87%;
             width: 9em;
             height: 2em;

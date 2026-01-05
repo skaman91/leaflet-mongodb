@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44">
+    <!-- мягкая тень -->
+    <defs>
+        <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.25"/>
+        </filter>
+    </defs>
+
+    <g transform="translate(22,22)" filter="url(#shadow)">
+
+        <!-- внешний круг -->
+        <circle cx="0" cy="0" r="12" fill="#3F7BFF"/>
+
+        <!-- белый обод -->
+        <circle cx="0" cy="0" r="10" fill="white"/>
+
+        <!-- центральная точка -->
+        <circle cx="0" cy="0" r="6" fill="#3F7BFF"/>
+
+        <!-- стрелка направления -->
+        <polygon
+                points="0,-22 -8,4 8,4"
+                fill="#1B5BFF"
+        />
+    </g>
+</svg>

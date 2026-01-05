@@ -1,6 +1,6 @@
 import { RADIUS } from './const.js'
 
-const map = L.map('map').setView([60.024828, 30.338195], 10)
+const map = L.map('map').setView([60.024828, 30.338195], 9)
 document.getElementById('msg').innerHTML = 'Загружаю точки...'
 let historyMarkers = []
 let archivePoints = []
@@ -8,6 +8,8 @@ let buttonsContainer
 let historyLines = {}
 let litePoints = 0
 let hardPoints = 0
+let mediumPoints = 0
+let atvPoints = 0
 let elsePoints = 0
 let noInstall = 0
 
@@ -34,7 +36,7 @@ const StartButton = L.Control.extend({
     container.innerHTML = '🚀 Играть'
 
     container.onclick = function () {
-      window.open('https://t.me/liteoffroad_bot', '_blank') // Заменить на @username бота
+      window.open('https://t.me/liteoffroad_bot', '_blank')
     }
 
     return container
@@ -50,65 +52,6 @@ const baseLayers = {
 }
 
 L.control.layers(baseLayers).addTo(map)
-
-setTimeout(() => {
-  const layersList = document.querySelector('.leaflet-control-layers-list')
-
-  if (layersList) {
-    function createButton (text, className, onClick) {
-      const button = document.createElement('button')
-      button.textContent = text
-      button.className = className
-      button.addEventListener('click', onClick)
-      return button
-    }
-
-    // Функции для переключения кнопок
-    function showHistory () {
-      clearMarkers()
-      getHistoryPoints()
-      showHistoryButton.style.display = 'none'
-      clearHistoryButton.style.display = 'flex'
-      historyButton.style.display = 'flex'
-    }
-
-    function clearHistory () {
-      clearMarkers()
-      clearHistoryButton.style.display = 'none'
-      showHistoryButton.style.display = 'flex'
-      historyButton.style.display = 'none'
-    }
-
-    // Функция скачивания GPX
-    function downloadGPXFile (filename, pointsData) {
-      const gpxContent = generateGPX(pointsData)
-      downloadGPX(filename, gpxContent)
-    }
-
-    // Кнопка "Скачать GPX актуальных точек"
-    const gpxActualButton = createButton('Скачать GPX актуальных точек', 'main-menu-buttons', () => {
-      downloadGPXFile('points.gpx', activePoint)
-    })
-
-    // Кнопка "Скачать архивные точки"
-    const historyButton = createButton('Скачать GPX архивных точек', 'main-menu-buttons', () => {
-      downloadGPXFile('points.gpx', historyMarkers)
-    })
-
-    // Кнопка "Показать историю"
-    const showHistoryButton = createButton('Показать историю', 'main-menu-buttons', showHistory)
-
-    // Кнопка "Очистить историю" (скрыта по умолчанию)
-    const clearHistoryButton = createButton('Очистить историю', 'main-menu-buttons', clearHistory)
-    clearHistoryButton.style.display = 'none'
-
-    // Добавляем кнопки в список слоёв
-    layersList.appendChild(showHistoryButton)
-    layersList.appendChild(clearHistoryButton)
-    layersList.appendChild(historyButton)
-    layersList.appendChild(gpxActualButton)
-  }
-}, 100)
 
 const locateControl = L.control.locate({
   position: 'topright', // Расположение кнопки на карте
@@ -127,6 +70,168 @@ const locateControl = L.control.locate({
 map.whenReady(() => {
   locateControl.start() // Активируем слежение за местоположением
 })
+
+// Храним всё по chatId
+const userMarkers = new Map()
+
+// Иконка стрелки (как locateControl)
+const arrowIcon = L.icon({
+  iconUrl: '/img/arrow-blue.svg',   // ⚠️ путь к SVG (можно поменять)
+  iconSize: [40, 40],
+  iconAnchor: [20, 20]
+})
+
+async function updateOtherUsers() {
+  try {
+    const res = await fetch('/locations')
+    const locations = await res.json()
+
+    // Кто сейчас активен
+    const activeIds = new Set(locations.map(l => l.chatId))
+
+    locations.forEach(loc => {
+      const {
+        chatId,
+        name,
+        latitude,
+        longitude,
+        timestamp,
+        heading,
+        accuracy,
+        speed,
+        expiresAt
+      } = loc
+      // console.log('expiresAt', expiresAt)
+
+      if (!latitude || !longitude) return
+
+      const latlng = [latitude, longitude]
+
+      // формат времени
+      const timeStr = new Date(timestamp).toLocaleTimeString('ru-RU')
+
+      const t = getRemainingLiveTime(expiresAt);
+
+      let liveStr = '';
+
+      if (t?.type === 'remaining') {
+        if (t.hours > 0) {
+          liveStr = `Осталось: ${t.hours} ч ${t.mins} мин`;
+        } else {
+          liveStr = `Осталось: ${t.mins} мин`;
+        }
+      }
+      else if (t?.type === 'expired') {
+        liveStr = `Трансляция завершилась`;
+      }
+      else if (t?.type === 'infinite') {
+        liveStr = `Бессрочная трансляция`;
+      }
+
+      // popup (красиво)
+      const popupText = `
+        <b>${name}</b><br>
+        Обновлено: ${timeStr}<br>
+        Точность:  ${accuracy ? accuracy + 'м' : '—'}<br>
+        Скорость:  ${speed ? speed.toFixed(1) + ' км/ч' : '—'}<br>
+        ${liveStr}<br>
+        <span style="font-size:10px;color:#777">id: ${chatId}</span>
+        `
+
+      // ========= если маркер уже есть =========
+      if (userMarkers.has(chatId)) {
+
+        const data = userMarkers.get(chatId)
+
+        data.marker.setLatLng(latlng)
+        data.marker.setRotationAngle(heading ?? 0)
+        data.marker.setPopupContent(popupText)
+
+        if (data.circle) data.circle.setLatLng(latlng)
+        if (data.circle && accuracy) data.circle.setRadius(accuracy)
+
+        return
+      }
+
+      // ========= создаём НОВЫЙ =========
+
+      // стрелка-маркер
+      const marker = L.marker(latlng, {
+        icon: arrowIcon,
+        rotationAngle: heading ?? 0,
+        rotationOrigin: 'center center'
+      }).addTo(map)
+
+      marker.bindPopup(popupText)
+
+      // круг точности
+      let circle = null
+      if (accuracy) {
+        circle = L.circle(latlng, {
+          radius: accuracy,
+          color: '#136AEC',
+          fillColor: '#136AEC',
+          fillOpacity: 0.15,
+          weight: 2
+        }).addTo(map)
+      }
+
+      userMarkers.set(chatId, { marker, circle })
+    })
+
+    // ========= удаляем НЕ активных =========
+    userMarkers.forEach((obj, chatId) => {
+      if (!activeIds.has(chatId)) {
+        map.removeLayer(obj.marker)
+        if (obj.circle) map.removeLayer(obj.circle)
+        userMarkers.delete(chatId)
+      }
+    })
+
+  } catch (err) {
+    console.error('Ошибка обновления локаций:', err)
+  }
+}
+
+// старт
+updateOtherUsers()
+setInterval(updateOtherUsers, 10000)
+
+function getRemainingLiveTime(expiresAt) {
+
+  // 1) нет срока — точно бессрочно
+  if (!expiresAt) {
+    return { type: 'infinite' };
+  }
+
+  const exp = new Date(expiresAt).getTime();
+  const now = Date.now();
+
+  const diffMs = exp - now;
+
+  // 2) если дата в прошлом — всё
+  if (diffMs <= 0) {
+    return { type: 'expired' };
+  }
+
+  // 3) если больше года — считаем бессрочным
+  const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+  if (diffMs > YEAR_MS) {
+    return { type: 'infinite' };
+  }
+
+  // 4) обычная live-гео
+  const totalMin = Math.floor(diffMs / 1000 / 60);
+  const hours = Math.floor(totalMin / 60);
+  const mins = totalMin % 60;
+
+  return {
+    type: 'remaining',
+    hours,
+    mins,
+    totalMin
+  };
+}
 
 // Создание кнопок в нижнем левом углу
 const ButtonsControl = L.Control.extend({
@@ -159,7 +264,7 @@ const noInstallPopup = L.popup()
 // Добавление кнопок на карту
 map.addControl(new ButtonsControl())
 
-new L.GPX('./lib/50km-area.gpx', {
+new L.GPX('./lib/v1.gpx', {
   async: true,
   polyline_options: { color: 'red', weight: 3, opacity: 0.9 },
   marker_options: {
@@ -354,7 +459,7 @@ const popupContent = `
       Если у Вас сломалась машина, Вы можете обратиться к нам в клубный внедорожный сервис 🚩Точка 4х4🚩<br>
       Шафировский пр., 10А, бокс 12-9.<br>
       Есть возможность выехать на место поломки. <br>
-      Телефон для связи: +79006356625
+      Телефон для связи: <a href="tel:+79006356625">+79006356625</a>
     </div>
     <img src="img/service.png" alt="Точка 4х4" style="width:50px;">
   </div>
@@ -391,38 +496,36 @@ searchControl.onAdd = function (map) {
 }
 searchControl.addTo(map)
 
-// document.addEventListener('DOMContentLoaded', function () {
-  // ✅ Создаем элемент для крестика
+  // элемент для крестика
   const crosshair = document.createElement('div')
   crosshair.className = 'map-crosshair'
   document.body.appendChild(crosshair)
 
-  // ✅ Создаем элемент для отображения координат
+  // элемент для отображения координат
   const coordDisplay = document.createElement('div')
   coordDisplay.className = 'coord-display'
   document.body.appendChild(coordDisplay)
 
-  // ✅ Функция обновления координат
+  // Функция обновления координат
   function updateCoordinates () {
     const center = map.getCenter()
     const coordsText = `${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`
     coordDisplay.innerText = `${coordsText}`
-    coordDisplay.setAttribute('data-coords', coordsText) // Корректное сохранение
+    coordDisplay.setAttribute('data-coords', coordsText)
   }
 
   // ✅ Обработчик клика для копирования координат
   coordDisplay.addEventListener('click', function () {
-    const coords = coordDisplay.getAttribute('data-coords') // Читаем атрибут с координатами
+    const coords = coordDisplay.getAttribute('data-coords')
     navigator.clipboard.writeText(coords).then(() => {
       coordDisplay.innerText = `✅ Скопировано!`
       setTimeout(updateCoordinates, 1000) // Вернуть координаты через 1 сек.
     }).catch(err => console.error('Ошибка копирования:', err))
   })
 
-  // ✅ Обновляем координаты при движении карты
+  //Обновляем координаты при движении карты
   map.on('move', updateCoordinates)
-  updateCoordinates() // Обновляем при загрузке
-// })
+  updateCoordinates()
 
 // Функция для воспроизведения звука
 function playSound () {
@@ -435,7 +538,7 @@ function playSound () {
   })
 }
 
-const markers = [] // Для хранения маркеров
+const markers = []
 const playedSounds = new Set() // Для предотвращения повторного воспроизведения звука
 
 await fetch('https://point-map.ru/points')
@@ -507,12 +610,16 @@ await fetch('https://point-map.ru/points')
         litePoints += 1
       } else if (rang === 'Хард') {
         hardPoints += 1
+      } else if (rang === 'Медиум') {
+        mediumPoints += 1
+      } else if (rang === 'Atv') {
+        atvPoints += 1
       } else {
         elsePoints += 1
       }
 
       const popupContent = `
-  <b>${rang} ${name}</b><br>
+  <b>${getRang(rang)} ${name}</b><br>
   Координаты: <span id="copy-coords" style="cursor: pointer">${lat}, ${lon}</span><br>
   Рейтинг точки: ${rating}<br>
   Точку установил: ${point.installed}<br>
@@ -701,13 +808,17 @@ await fetch('https://point-map.ru/points')
     infoDiv.id = 'points-info'
     infoDiv.innerHTML = `
   <div>🟢 Лайт: <span id="lite-count">0</span></div>
+  <div>🔵 Ни то ни се: <span id="medium-count">0</span></div>
   <div>🔴 Хард: <span id="hard-count">0</span></div>
-  <div>🔵 Прочее: <span id="else-count">0</span></div>
+  <div>🟠 Atv: <span id="atv-count">0</span></div>
+  <div>🟣 Прочее: <span id="else-count">0</span></div>
   <div id="noInstall">На руках: <span id="noInstall-count">0</span></div>
 `
     document.body.appendChild(infoDiv)
     document.getElementById('lite-count').textContent = litePoints
     document.getElementById('hard-count').textContent = hardPoints
+    document.getElementById('medium-count').textContent = mediumPoints
+    document.getElementById('atv-count').textContent = atvPoints
     document.getElementById('else-count').textContent = elsePoints
     document.getElementById('noInstall-count').textContent = noInstall
 
@@ -758,6 +869,14 @@ function showNoInstallPopup (points) {
     popupContent += `<div>${point.point} - ${daysSinceTake} ${declOfNum(daysSinceTake, 'дней')} назад, Взял: ${point.installed}</div>`
   })
   noInstallPopup.setContent(popupContent)
+}
+
+function getRang(rang) {
+  if (rang === 'Медиум') {
+    return 'Ни то ни сё'
+  } else {
+    return rang
+  }
 }
 
 /**
@@ -1127,12 +1246,16 @@ function setRangColor (rang, pointId) {
     return 'rgb(255,152,0)'
   }
   if (!rang) {
-    return 'rgb(84,84,243)'
+    return 'rgb(213,41,239)'
   }
   if (rang === 'Лайт') {
     return 'rgb(26,165,45)'
-  } else {
+  } else if (rang === 'Хард') {
     return 'rgb(241,5,5)'
+  } else if (rang === 'Медиум') {
+    return 'rgb(5,60,241)'
+  } else if (rang === 'Atv') {
+    return 'rgb(248,147,13)'
   }
 }
 

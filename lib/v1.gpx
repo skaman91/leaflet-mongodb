@@ -1,0 +1,552 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" creator="SAS.Planet 20.12.12.10106" version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:wptx1="http://www.garmin.com/xmlschemas/WaypointExtension/v1" xmlns:gpxtrx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/WaypointExtension/v1 http://www8.garmin.com/xmlschemas/WaypointExtensionv1.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd">
+  <metadata>
+    <time>2025-08-22T21:54:56Z</time>
+    <link href="http://www.sasgis.org/">
+      <text>SAS.Planet</text>
+    </link>
+    <name>Path 2</name>
+    <desc>track: false&#60;br&#62;cmt: 03.02.2025 2:08:26&#60;br&#62;number: 1</desc>
+    <author>
+      <name>kolyan</name>
+    </author>
+    <bounds maxlat="59.3491026735735" maxlon="31.4487280055345" minlat="60.8431774087876" minlon="28.7904953899263"/>
+  </metadata>
+  <rte>
+    <name>Path 2</name>
+    <cmt>1</cmt>
+    <number>1</number>
+    <extensions>
+      <gpxx:RouteExtension>
+        <gpxx:Categories>
+          <gpxx:Category>default</gpxx:Category>
+        </gpxx:Categories>
+      </gpxx:RouteExtension>
+      <gpxtrx:TrackExtension>
+        <gpxtrx:Categories>
+          <gpxtrx:Category>default</gpxtrx:Category>
+        </gpxtrx:Categories>
+      </gpxtrx:TrackExtension>
+    </extensions>
+    <rtept lat="60.2488849962179" lon="28.95118372028">
+      <name>Path 2 1</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2828616888407" lon="28.978999168114">
+      <name>Path 2 2</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.3065097429462" lon="29.004748374657">
+      <name>Path 2 3</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.4713885337731" lon="29.2908093123953">
+      <name>Path 2 4</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.8431774087876" lon="30.4635382438314">
+      <name>Path 2 5</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.8198040777288" lon="30.529081138984">
+      <name>Path 2 6</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.7232422242275" lon="30.5524270862496">
+      <name>Path 2 7</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.7239137958637" lon="30.5057351917183">
+      <name>Path 2 8</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.6835946388883" lon="30.5084817737496">
+      <name>Path 2 9</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.6648458222717" lon="30.5311410755073">
+      <name>Path 2 10</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.650040837553" lon="30.5156915515815">
+      <name>Path 2 11</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.6441505996285" lon="30.5222146839057">
+      <name>Path 2 12</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.6209157388349" lon="30.5112283557807">
+      <name>Path 2 13</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.5977273998897" lon="30.5628098430594">
+      <name>Path 2 14</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.6084285696365" lon="30.6088150920828">
+      <name>Path 2 15</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.5860953349852" lon="30.6240929546317">
+      <name>Path 2 16</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.5823856797385" lon="30.6628884258231">
+      <name>Path 2 17</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.5650992631081" lon="30.6965606246703">
+      <name>Path 2 18</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.5362351658278" lon="30.7223098312133">
+      <name>Path 2 19</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.5244120229446" lon="30.7240264449828">
+      <name>Path 2 20</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.504978913489" lon="30.7648818526976">
+      <name>Path 2 21</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.4953562513945" lon="30.7681571963651">
+      <name>Path 2 22</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.4922731201205" lon="30.7727456481473">
+      <name>Path 2 23</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.484239851066" lon="30.7832169921415">
+      <name>Path 2 24</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.4729053305079" lon="30.7916283996122">
+      <name>Path 2 25</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.4632594117951" lon="30.7918000609892">
+      <name>Path 2 26</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.4607205356759" lon="30.8029580504911">
+      <name>Path 2 27</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.4464991600071" lon="30.8206391723173">
+      <name>Path 2 28</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.4297343171695" lon="30.8390120992819">
+      <name>Path 2 29</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.4138890755919" lon="30.8513717184226">
+      <name>Path 2 30</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.397183813663" lon="30.8671527594974">
+      <name>Path 2 31</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.3770804647115" lon="30.8817439765384">
+      <name>Path 2 32</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.3519653702485" lon="30.8920086650507">
+      <name>Path 2 33</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.3361957457299" lon="30.8969812373651">
+      <name>Path 2 34</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.3291435609832" lon="30.8971528987421">
+      <name>Path 2 35</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.3040386344984" lon="30.911537938121">
+      <name>Path 2 36</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.265389471072" lon="30.9332151976354">
+      <name>Path 2 37</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2590884176599" lon="30.9361334410434">
+      <name>Path 2 38</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2454603711482" lon="30.9403391447788">
+      <name>Path 2 39</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.234815102417" lon="30.9431240973131">
+      <name>Path 2 40</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2284291012253" lon="30.9452698645251">
+      <name>Path 2 41</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2242948308812" lon="30.9497330603258">
+      <name>Path 2 42</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2181990276699" lon="30.954797070946">
+      <name>Path 2 43</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2108605817785" lon="30.9555117347712">
+      <name>Path 2 44</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2074064385426" lon="30.9594599464411">
+      <name>Path 2 45</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.200539715739" lon="30.959974930572">
+      <name>Path 2 46</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1860426036095" lon="30.9756454626913">
+      <name>Path 2 47</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1786449444504" lon="30.9869192807297">
+      <name>Path 2 48</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1745043961403" lon="30.9980772702316">
+      <name>Path 2 49</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1710037316508" lon="31.0124968258957">
+      <name>Path 2 50</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1698509921898" lon="31.0258005826095">
+      <name>Path 2 51</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1704060199422" lon="31.0363577572922">
+      <name>Path 2 52</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1766814505315" lon="31.0380743710617">
+      <name>Path 2 53</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1802241913352" lon="31.0427950589279">
+      <name>Path 2 54</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1778339503219" lon="31.0522364346603">
+      <name>Path 2 55</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1709183449296" lon="31.0543822018722">
+      <name>Path 2 56</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1528540656039" lon="31.0569571225266">
+      <name>Path 2 57</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1405492994033" lon="31.0569571225266">
+      <name>Path 2 58</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1275898922646" lon="31.0788855930274">
+      <name>Path 2 59</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1169007288436" lon="31.0919318576759">
+      <name>Path 2 60</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1038124677439" lon="31.084207095713">
+      <name>Path 2 61</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.0852215365977" lon="31.0752995922401">
+      <name>Path 2 62</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.0672386446355" lon="31.0704930736854">
+      <name>Path 2 63</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.0578151205619" lon="31.0780461742713">
+      <name>Path 2 64</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.0417032299215" lon="31.1164983227088">
+      <name>Path 2 65</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.0318008014938" lon="31.1139234020549">
+      <name>Path 2 66</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.0252832983307" lon="31.1099751903849">
+      <name>Path 2 67</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.025755002896" lon="31.1033662273722">
+      <name>Path 2 68</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.0253690632979" lon="31.0893758251506">
+      <name>Path 2 69</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.0206087709689" lon="31.0879167034465">
+      <name>Path 2 70</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.0184642711488" lon="31.0844834759074">
+      <name>Path 2 71</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.0077455771375" lon="31.0905456940412">
+      <name>Path 2 72</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9910593626099" lon="31.0974121491193">
+      <name>Path 2 73</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9888551424419" lon="31.0963348991214">
+      <name>Path 2 74</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9858069861365" lon="31.0862927085697">
+      <name>Path 2 75</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9809121760643" lon="31.0769371635257">
+      <name>Path 2 76</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9775874861024" lon="31.0733409272467">
+      <name>Path 2 77</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9730028521669" lon="31.0693068848883">
+      <name>Path 2 78</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9709841235456" lon="31.0688133584295">
+      <name>Path 2 79</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9688578826908" lon="31.0660882340704">
+      <name>Path 2 80</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9664737533457" lon="31.0599513398443">
+      <name>Path 2 81</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9636920522134" lon="31.053041969422">
+      <name>Path 2 82</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9605234208106" lon="31.0412617074286">
+      <name>Path 2 83</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9562264873831" lon="31.0311336861884">
+      <name>Path 2 84</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.951757085493" lon="31.0283871041571">
+      <name>Path 2 85</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9502098444033" lon="31.0238380776678">
+      <name>Path 2 86</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.94644888785" lon="31.0287304269109">
+      <name>Path 2 87</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9492857631927" lon="31.0343523370062">
+      <name>Path 2 88</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9494147063035" lon="31.0376139031683">
+      <name>Path 2 89</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9469217172667" lon="31.0451670037542">
+      <name>Path 2 90</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9457181382138" lon="31.04765609372">
+      <name>Path 2 91</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9411828317721" lon="31.0525913583074">
+      <name>Path 2 92</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9347979605392" lon="31.0589428292547">
+      <name>Path 2 93</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9307933660214" lon="31.0631602177593">
+      <name>Path 2 94</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9244710143874" lon="31.0820429692242">
+      <name>Path 2 95</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9221267071086" lon="31.1106675038311">
+      <name>Path 2 96</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9191235737805" lon="31.147892994502">
+      <name>Path 2 97</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9125013575974" lon="31.1617572403744">
+      <name>Path 2 98</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9100055928747" lon="31.208320388873">
+      <name>Path 2 99</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9135812982351" lon="31.2186189164482">
+      <name>Path 2 100</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9195128782861" lon="31.2232131007339">
+      <name>Path 2 101</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9299506344904" lon="31.2303455661749">
+      <name>Path 2 102</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.932138018902" lon="31.2326617085536">
+      <name>Path 2 103</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9355996082237" lon="31.2424034916957">
+      <name>Path 2 104</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9363066324454" lon="31.2509522087792">
+      <name>Path 2 105</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9361346402033" lon="31.2714657433251">
+      <name>Path 2 106</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9360701428825" lon="31.2893185265282">
+      <name>Path 2 107</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9357691537271" lon="31.2930521614769">
+      <name>Path 2 108</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9298133065715" lon="31.3132652886131">
+      <name>Path 2 109</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9270177749115" lon="31.3163981087425">
+      <name>Path 2 110</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9133592920362" lon="31.3286289818504">
+      <name>Path 2 111</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9020875592565" lon="31.3484902162566">
+      <name>Path 2 112</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.8974875657409" lon="31.3664783048938">
+      <name>Path 2 113</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.8960238923828" lon="31.3884080457996">
+      <name>Path 2 114</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.8960238923828" lon="31.3935578871082">
+      <name>Path 2 115</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9002153047282" lon="31.4427627726854">
+      <name>Path 2 116</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.8632839310341" lon="31.4487280055345">
+      <name>Path 2 117</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.8201792037346" lon="31.4210470992756">
+      <name>Path 2 118</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.6963502763363" lon="31.3556505662314">
+      <name>Path 2 119</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.5790009800543" lon="31.2119344815121">
+      <name>Path 2 120</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.4744907336666" lon="30.9857184192969">
+      <name>Path 2 121</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.3796088767143" lon="30.6051859690151">
+      <name>Path 2 122</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.3491026735735" lon="30.1580717979916">
+      <name>Path 2 123</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.3639111545369" lon="29.8503339359202">
+      <name>Path 2 124</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.4157907512956" lon="29.4465144590714">
+      <name>Path 2 125</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.5160905020266" lon="29.1749710636476">
+      <name>Path 2 126</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.6219346447183" lon="28.9529180765743">
+      <name>Path 2 127</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.7252680013907" lon="28.8341361861008">
+      <name>Path 2 128</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.8012198753151" lon="28.7904953899263">
+      <name>Path 2 129</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.248879527411" lon="28.9511985006849">
+      <name>Path 2 130</name>
+      <sym>waypoint</sym>
+    </rtept>
+  </rte>
+</gpx>

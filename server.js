@@ -15,12 +15,14 @@ const db = client.db('liteoffroad')
 const pointsCollection = db.collection('points')
 const historyCollection = db.collection('historyPoints')
 const stateCollection = db.collection('state')
+const tracksCollection = db.collection('tracks')
+const trackPointsCollection = db.collection('track_points')
 
 const PORT = 3000
 const app = express()
 
-app.use(express.json()) // Добавляем JSON-парсер
-app.use(cors()) // Разрешаем CORS
+app.use(express.json())
+app.use(cors())
 
 function checkTelegramAuth(data) {
   const { hash, ...fields } = data
@@ -85,6 +87,93 @@ app.get('/photo/telegram/:fileId', async (req, res) => {
     res.status(500).send('Ошибка загрузки изображения')
   }
 })
+
+app.get('/locations', async (req, res) => {
+  try {
+    const { chatId } = req.query
+
+    // =============================
+    // 1. Запрос с chatId
+    // =============================
+    if (chatId) {
+      const numericChatId = Number(chatId)
+
+      // ищем активный трек юзера
+      const activeTrack = await tracksCollection.findOne({
+        chatId: numericChatId,
+        active: true
+      })
+
+      let pointQuery = {}
+
+      if (activeTrack) {
+        pointQuery.trackId = activeTrack._id
+      } else {
+        // если нет активного — берём все его точки
+        pointQuery.chatId = numericChatId
+      }
+
+      const lastPoint = await trackPointsCollection
+        .find(pointQuery)
+        .sort({ timestamp: -1 })
+        .limit(1)
+        .toArray()
+
+      return res.status(200).json(lastPoint[0] || {})
+    }
+
+    // =========================================
+    // 2. Если chatId НЕ передан → все активные
+    // =========================================
+
+    const latestLocations = await tracksCollection.aggregate([
+
+      // только активные треки
+      { $match: { active: true } },
+
+      // соединяем с точками
+      {
+        $lookup: {
+          from: 'track_points',
+          localField: '_id',
+          foreignField: 'trackId',
+          as: 'points'
+        }
+      },
+
+      // разворачиваем массив
+      { $unwind: '$points' },
+
+      // упорядочиваем по времени
+      { $sort: { 'points.timestamp': -1 } },
+
+      // берём последнюю точку на юзера
+      {
+        $group: {
+          _id: '$chatId',
+          chatId: { $first: '$chatId' },
+          name: { $first: '$displayName' },
+          expiresAt: { $first: '$expiresAt' },
+          latitude: { $first: '$points.latitude' },
+          longitude: { $first: '$points.longitude' },
+          heading: { $first: '$points.heading' },
+          accuracy: { $first: '$points.accuracy' },
+          speed: { $first: '$points.speed' },
+          timestamp: { $first: '$points.timestamp' },
+          trackId: { $first: '$_id' }
+        }
+      }
+
+    ]).toArray()
+
+    res.status(200).json(latestLocations)
+
+  } catch (err) {
+    console.error('Error fetching locations:', err)
+    res.status(500).json({ error: 'Database error' })
+  }
+})
+
 
 
 
@@ -177,5 +266,4 @@ const options = {
 https.createServer(options, app).listen(PORT, () => {
   console.log(`HTTPS Server is running on port ${PORT}`)
 })
-
 

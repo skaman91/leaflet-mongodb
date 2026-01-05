@@ -14,5 +14,6 @@
     <orderEntry type="library" name="leaflet.polylinemeasure" level="application" />
     <orderEntry type="library" name="leaflet-ruler" level="application" />
     <orderEntry type="library" name="leaflet-routing-machine" level="application" />
+    <orderEntry type="library" name="leaflet.rotatedMarker" level="application" />
   </component>
 </module>
