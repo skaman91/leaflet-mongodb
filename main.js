@@ -81,12 +81,11 @@ const arrowIcon = L.icon({
   iconAnchor: [20, 20]
 })
 
-async function updateOtherUsers() {
+async function updateOtherUsers () {
   try {
     const res = await fetch('/locations')
     const locations = await res.json()
 
-    // Кто сейчас активен
     const activeIds = new Set(locations.map(l => l.chatId))
 
     locations.forEach(loc => {
@@ -101,61 +100,48 @@ async function updateOtherUsers() {
         speed,
         expiresAt
       } = loc
-      // console.log('expiresAt', expiresAt)
 
       if (!latitude || !longitude) return
 
       const latlng = [latitude, longitude]
-
-      // формат времени
       const timeStr = new Date(timestamp).toLocaleTimeString('ru-RU')
-
-      const t = getRemainingLiveTime(expiresAt);
-
-      let liveStr = '';
-
+      const t = getRemainingLiveTime(expiresAt)
+      let liveStr = ''
       if (t?.type === 'remaining') {
-        if (t.hours > 0) {
-          liveStr = `Осталось: ${t.hours} ч ${t.mins} мин`;
-        } else {
-          liveStr = `Осталось: ${t.mins} мин`;
-        }
-      }
-      else if (t?.type === 'expired') {
-        liveStr = `Трансляция завершилась`;
-      }
-      else if (t?.type === 'infinite') {
-        liveStr = `Бессрочная трансляция`;
+        liveStr = t.hours > 0
+          ? `Осталось: ${t.hours} ч ${t.mins} мин`
+          : `Осталось: ${t.mins} мин`
+      } else if (t?.type === 'expired') {
+        liveStr = `Трансляция завершилась`
+      } else if (t?.type === 'infinite') {
+        liveStr = `Бессрочная трансляция`
       }
 
-      // popup (красиво)
       const popupText = `
         <b>${name}</b><br>
         Обновлено: ${timeStr}<br>
-        Точность:  ${accuracy ? accuracy + 'м' : '—'}<br>
-        Скорость:  ${speed ? speed.toFixed(1) + ' км/ч' : '—'}<br>
+        Точность: ${accuracy ? accuracy + ' м' : '—'}<br>
+        Скорость: ${speed ? speed.toFixed(1) + ' км/ч' : '—'}<br>
         ${liveStr}<br>
         <span style="font-size:10px;color:#777">id: ${chatId}</span>
-        `
+      `
 
-      // ========= если маркер уже есть =========
+      // ===== если маркер уже есть =====
       if (userMarkers.has(chatId)) {
-
         const data = userMarkers.get(chatId)
 
         data.marker.setLatLng(latlng)
-        data.marker.setRotationAngle(heading ?? 0)
         data.marker.setPopupContent(popupText)
 
-        if (data.circle) data.circle.setLatLng(latlng)
-        if (data.circle && accuracy) data.circle.setRadius(accuracy)
+        if (data.circle) {
+          data.circle.setLatLng(latlng)
+          if (accuracy) data.circle.setRadius(accuracy)
+        }
 
         return
       }
 
-      // ========= создаём НОВЫЙ =========
-
-      // стрелка-маркер
+      // ===== создаём новый маркер =====
       const marker = L.marker(latlng, {
         icon: arrowIcon,
         rotationAngle: heading ?? 0,
@@ -164,7 +150,6 @@ async function updateOtherUsers() {
 
       marker.bindPopup(popupText)
 
-      // круг точности
       let circle = null
       if (accuracy) {
         circle = L.circle(latlng, {
@@ -179,7 +164,7 @@ async function updateOtherUsers() {
       userMarkers.set(chatId, { marker, circle })
     })
 
-    // ========= удаляем НЕ активных =========
+    // ===== удаляем неактивных =====
     userMarkers.forEach((obj, chatId) => {
       if (!activeIds.has(chatId)) {
         map.removeLayer(obj.marker)
@@ -197,40 +182,40 @@ async function updateOtherUsers() {
 updateOtherUsers()
 setInterval(updateOtherUsers, 10000)
 
-function getRemainingLiveTime(expiresAt) {
+function getRemainingLiveTime (expiresAt) {
 
   // 1) нет срока — точно бессрочно
   if (!expiresAt) {
-    return { type: 'infinite' };
+    return { type: 'infinite' }
   }
 
-  const exp = new Date(expiresAt).getTime();
-  const now = Date.now();
+  const exp = new Date(expiresAt).getTime()
+  const now = Date.now()
 
-  const diffMs = exp - now;
+  const diffMs = exp - now
 
   // 2) если дата в прошлом — всё
   if (diffMs <= 0) {
-    return { type: 'expired' };
+    return { type: 'expired' }
   }
 
   // 3) если больше года — считаем бессрочным
-  const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+  const YEAR_MS = 365 * 24 * 60 * 60 * 1000
   if (diffMs > YEAR_MS) {
-    return { type: 'infinite' };
+    return { type: 'infinite' }
   }
 
   // 4) обычная live-гео
-  const totalMin = Math.floor(diffMs / 1000 / 60);
-  const hours = Math.floor(totalMin / 60);
-  const mins = totalMin % 60;
+  const totalMin = Math.floor(diffMs / 1000 / 60)
+  const hours = Math.floor(totalMin / 60)
+  const mins = totalMin % 60
 
   return {
     type: 'remaining',
     hours,
     mins,
     totalMin
-  };
+  }
 }
 
 // Создание кнопок в нижнем левом углу
@@ -275,18 +260,8 @@ new L.GPX('./lib/v1.gpx', {
   get_marker: function () { return null }
 }).addTo(map)
 
+// отображение доп зоны
 // new L.GPX('./lib/север.gpx', {
-//   async: true,
-//   polyline_options: { color: 'green', weight: 3, opacity: 1 },
-//   marker_options: {
-//     startIconUrl: '',
-//     endIconUrl: '',
-//     wptIconUrls: {}
-//   },
-//   get_marker: function () { return null }
-// }).addTo(map)
-//
-// new L.GPX('./lib/граница восток4.gpx', {
 //   async: true,
 //   polyline_options: { color: 'green', weight: 3, opacity: 1 },
 //   marker_options: {
@@ -496,50 +471,38 @@ searchControl.onAdd = function (map) {
 }
 searchControl.addTo(map)
 
-  // элемент для крестика
-  const crosshair = document.createElement('div')
-  crosshair.className = 'map-crosshair'
-  document.body.appendChild(crosshair)
+// элемент для крестика
+const crosshair = document.createElement('div')
+crosshair.className = 'map-crosshair'
+document.body.appendChild(crosshair)
 
-  // элемент для отображения координат
-  const coordDisplay = document.createElement('div')
-  coordDisplay.className = 'coord-display'
-  document.body.appendChild(coordDisplay)
+// элемент для отображения координат
+const coordDisplay = document.createElement('div')
+coordDisplay.className = 'coord-display'
+document.body.appendChild(coordDisplay)
 
-  // Функция обновления координат
-  function updateCoordinates () {
-    const center = map.getCenter()
-    const coordsText = `${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`
-    coordDisplay.innerText = `${coordsText}`
-    coordDisplay.setAttribute('data-coords', coordsText)
-  }
-
-  // ✅ Обработчик клика для копирования координат
-  coordDisplay.addEventListener('click', function () {
-    const coords = coordDisplay.getAttribute('data-coords')
-    navigator.clipboard.writeText(coords).then(() => {
-      coordDisplay.innerText = `✅ Скопировано!`
-      setTimeout(updateCoordinates, 1000) // Вернуть координаты через 1 сек.
-    }).catch(err => console.error('Ошибка копирования:', err))
-  })
-
-  //Обновляем координаты при движении карты
-  map.on('move', updateCoordinates)
-  updateCoordinates()
-
-// Функция для воспроизведения звука
-function playSound () {
-  const audio = new Audio('./sound_30.mp3')
-
-  audio.play().then(() => {
-    console.log('Звук успешно проигран')
-  }).catch(error => {
-    console.error('Ошибка при воспроизведении звука:', error)
-  })
+// Функция обновления координат
+function updateCoordinates () {
+  const center = map.getCenter()
+  const coordsText = `${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`
+  coordDisplay.innerText = `${coordsText}`
+  coordDisplay.setAttribute('data-coords', coordsText)
 }
 
+// Обработчик клика для копирования координат
+coordDisplay.addEventListener('click', function () {
+  const coords = coordDisplay.getAttribute('data-coords')
+  navigator.clipboard.writeText(coords).then(() => {
+    coordDisplay.innerText = `✅ Скопировано!`
+    setTimeout(updateCoordinates, 1000) // Вернуть координаты через 1 сек.
+  }).catch(err => console.error('Ошибка копирования:', err))
+})
+
+//Обновляем координаты при движении карты
+map.on('move', updateCoordinates)
+updateCoordinates()
+
 const markers = []
-const playedSounds = new Set() // Для предотвращения повторного воспроизведения звука
 
 await fetch('https://point-map.ru/points')
   .then(response => {
@@ -624,8 +587,8 @@ await fetch('https://point-map.ru/points')
   Рейтинг точки: ${rating}<br>
   Точку установил: ${point.installed}<br>
   ${point.comment}<br>
-  Точка установлена: ${getDaysSinceInstallation(installTime)} ${declOfNum(getDaysSinceInstallation(installTime), 'дней')} назад <br>
-  <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${comment}">
+  Точка установлена: ${formatDaysHoursSince(installTime)} назад <br>
+    <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${comment}">
     Скачать GPX файл этой точки
   </button><br>
   <button class="load-history" data-name="${name}">История перемещения точки</button><br>
@@ -864,14 +827,22 @@ function getQueryParam (param) {
 // Функция для отображения попапа с точками на руках
 function showNoInstallPopup (points) {
   let popupContent = '<div><b>Точки на руках, когда и кем взяты</b></div>'
+
   points.forEach(point => {
-    const daysSinceTake = getDaysSinceInstallation(point.takeTimestamp)
-    popupContent += `<div>${point.point} - ${daysSinceTake} ${declOfNum(daysSinceTake, 'дней')} назад, Взял: ${point.installed}</div>`
+    const timeStr = formatDaysHoursSince(point.takeTimestamp)
+
+    popupContent += `
+      <div>
+        ${point.point} — 
+        ${timeStr} назад, Взял: ${point.installed}
+      </div>
+    `
   })
+
   noInstallPopup.setContent(popupContent)
 }
 
-function getRang(rang) {
+function getRang (rang) {
   if (rang === 'Медиум') {
     return 'Ни то ни сё'
   } else {
@@ -1259,24 +1230,6 @@ function setRangColor (rang, pointId) {
   }
 }
 
-function addScreenBlinkEffect () {
-  const overlay = document.getElementById('screen-overlay')
-  if (!overlay) {
-    console.error('Элемент #screen-overlay не найден!')
-    return
-  }
-
-  // Показываем элемент и включаем анимацию
-  overlay.style.display = 'block'
-  overlay.style.animation = 'screen-blink 1s linear 3' // 3 цикла анимации (1 секунда каждый)
-
-  // Убираем эффект через 3 секунды
-  setTimeout(() => {
-    overlay.style.animation = ''
-    overlay.style.display = 'none'
-  }, 3000)
-}
-
 // Функция для проверки, находится ли пользователь в радиусе 30 метров от точки
 function isWithinRadius (userLat, userLng, markerLat, markerLng, radiusInMeters) {
   const earthRadius = 6371000 // Радиус Земли в метрах
@@ -1313,13 +1266,6 @@ navigator.geolocation.watchPosition(
         }
         updateDistance(userLat, userLng) // Обновляем расстояние
         return
-      }
-      if (distance <= 30) {
-        if (!playedSounds.has(marker)) {
-          playSound()
-          addScreenBlinkEffect()
-          playedSounds.add(marker) // Запоминаем, что звук для этой точки уже воспроизведен
-        }
       }
     }
 
@@ -1385,12 +1331,28 @@ function calculateDistance (lat1, lng1, lat2, lng2) {
   return earthRadius * c
 }
 
-function getDaysSinceInstallation (timestamp) {
-  const currentDate = new Date()
-  const installationDate = new Date(timestamp)
+function formatDaysHoursSince (timestamp) {
+  const now = new Date()
+  const then = new Date(timestamp)
 
-  // Разница в днях, считая смену даты
-  return Math.ceil((currentDate - installationDate) / (1000 * 60 * 60 * 24))
+  let diffMs = now - then
+  if (diffMs < 0) diffMs = 0
+
+  const totalHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const days = Math.floor(totalHours / 24)
+  const hours = totalHours % 24
+
+  let result = ''
+
+  if (days > 0) {
+    result += `${days} ${declOfNum(days, 'дней')}`
+  }
+
+  if (hours > 0 || days === 0) {
+    result += `${days > 0 ? ' ' : ''}${hours} ${declOfNum(hours, 'час')}`
+  }
+
+  return result
 }
 
 function declOfNum (number, label) {
@@ -1411,11 +1373,6 @@ function declOfNum (number, label) {
 
   return map[(number % 100 > 4 && number % 100 < 20) ? 2 : cases[(number % 10 < 5) ? number % 10 : 5]]
 }
-
-document.getElementById('playSoundButton').addEventListener('click', () => {
-  playSound()
-  addScreenBlinkEffect()
-})
 
 const showHistoryBtn = document.getElementById('showHistory')
 if (showHistoryBtn) {
