@@ -13,19 +13,6 @@ let atvPoints = 0
 let elsePoints = 0
 let noInstall = 0
 
-//osm Layer
-const OSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '<b>Liteoffroad "Застрянь друга"</b>'
-})
-OSM.addTo(map)
-
-//google2 Layer
-const googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-  subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-  attribution: '<b>Liteoffroad "Застрянь друга"</b>'
-})
-
-// Кнопка начать играть
 const StartButton = L.Control.extend({
   options: {
     position: 'topright'
@@ -45,13 +32,76 @@ const StartButton = L.Control.extend({
 
 map.addControl(new StartButton())
 
-//layer Controls
-const baseLayers = {
-  'OpenStreetMap': OSM,
-  'Google maps': googleSat
+// OSM — базовый слой
+const OSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  opacity: 1
+}).addTo(map)
+
+// Google — overlay с opacity
+const googleSat = L.tileLayer(
+  'http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+  {
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    opacity: 0
+  }
+).addTo(map)
+
+// opacity control
+const opacityControl = L.control.opacity(
+  { 'Схема/Спутник': googleSat },
+  {
+    collapsed: false,
+    position: 'bottomleft'
+  }
+).addTo(map)
+
+opacityControl.getContainer().classList.add('glass-control')
+
+const sliderContainer = opacityControl.getContainer()
+const slider = sliderContainer.querySelector('input[type="range"]')
+
+let isDragging = false
+
+function updateSliderByPointer(e) {
+  const rect = slider.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const percent = Math.max(0, Math.min(1, x / rect.width))
+  slider.value = percent * 100
+  slider.dispatchEvent(new Event('input', { bubbles: true }))
 }
 
-L.control.layers(baseLayers).addTo(map)
+// старт
+sliderContainer.addEventListener('pointerdown', (e) => {
+  isDragging = true
+  sliderContainer.setPointerCapture(e.pointerId)
+  updateSliderByPointer(e)
+})
+
+// движение
+sliderContainer.addEventListener('pointermove', (e) => {
+  if (!isDragging) return
+  updateSliderByPointer(e)
+})
+
+// конец
+function stopDrag(e) {
+  isDragging = false
+  try {
+    sliderContainer.releasePointerCapture(e.pointerId)
+  } catch (err) {}
+}
+
+sliderContainer.addEventListener('pointerup', stopDrag)
+sliderContainer.addEventListener('pointercancel', stopDrag)
+sliderContainer.addEventListener('pointerleave', stopDrag)
+
+//layer Controls
+// const baseLayers = {
+//   'OpenStreetMap': OSM,
+//   'Google maps': googleSat
+// }
+
+// L.control.layers(baseLayers).addTo(map)
 
 const locateControl = L.control.locate({
   position: 'topright', // Расположение кнопки на карте
@@ -83,7 +133,7 @@ const arrowIcon = L.icon({
 
 async function updateOtherUsers () {
   try {
-    const res = await fetch('/locations')
+    const res = await fetch('https://point-map.ru/locations')
     const locations = await res.json()
 
     const activeIds = new Set(locations.map(l => l.chatId))
@@ -225,16 +275,15 @@ const ButtonsControl = L.Control.extend({
   },
 
   onAdd: function (map) {
-    buttonsContainer = L.DomUtil.create('div')
+    buttonsContainer = L.DomUtil.create('div', 'glass-control')
 
-    // Кнопка "Показать историю"
-    const showButton = L.DomUtil.create('button', 'custom-button', buttonsContainer)
+    const showButton = L.DomUtil.create('button', 'glass-button', buttonsContainer)
     showButton.innerHTML = 'Показать историю'
     showButton.id = 'showButton'
     L.DomEvent.on(showButton, 'click', getHistoryPoints)
 
     // Кнопка "Очистить историю" (скрыта по умолчанию)
-    const clearButton = L.DomUtil.create('button', 'custom-button', buttonsContainer)
+    const clearButton = L.DomUtil.create('button', 'glass-button', buttonsContainer)
     clearButton.innerHTML = 'Очистить историю'
     clearButton.id = 'clearButton'
     clearButton.style.display = 'none'
@@ -583,24 +632,66 @@ await fetch('https://point-map.ru/points')
 
       const popupContent = `
   <b>${getRang(rang)} ${name}</b><br>
-  Координаты: <span id="copy-coords" style="cursor: pointer">${lat}, ${lon}</span><br>
+
+  Координаты:
+  <span id="copy-coords" class="popup-link">
+    ${lat}, ${lon}
+  </span><br>
+
   Рейтинг точки: ${rating}<br>
   Точку установил: ${point.installed}<br>
-  ${point.comment}<br>
-  Точка установлена: ${formatDaysHoursSince(installTime)} назад <br>
-    <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${comment}">
-    Скачать GPX файл этой точки
-  </button><br>
-  <button class="load-history" data-name="${name}">История перемещения точки</button><br>
-  <label class="circle-toggle">
-    <input type="checkbox" class="show-circle" data-lat="${lat}" data-lon="${lon}">
+  <div class="popup-time">
+  Установлена:
+  <span class="popup-date">
+    ${formatDateDDMMYYYY(installTime)}
+  </span>
+  ·
+  ${formatDaysHoursSince(installTime)} назад
+</div>
+
+  ${point.comment ? `
+    <div class="popup-comment">
+      ${point.comment}
+    </div>
+  ` : ''}
+
+  <div class="popup-actions-grid">
+
+  <button class="popup-btn one-gpx-download"
+    data-lat="${lat}"
+    data-lon="${lon}"
+    data-name="${name}"
+    data-comment="${comment}">
+    ⬇️ GPX
+  </button>
+
+  <button class="popup-btn load-history"
+    data-name="${name}">
+    История
+  </button>
+
+</div>
+
+${point.channelLink ? `
+  <a href="${point.channelLink}" target="_blank"
+     class="popup-btn popup-btn-link popup-btn-full">
+    💬 Обсудить точку
+  </a>
+` : ''}
+
+  <label class="circle-toggle popup-toggle">
+    <input type="checkbox" class="show-circle"
+      data-lat="${lat}" data-lon="${lon}">
     Показать зону ${RADIUS} метров
   </label>
-  <!-- Изображение в попапе, изначально маленькое -->
-  <div style="display: flex; align-items: center;">
-    <img id="popup-photo" src="https://point-map.ru/photo/telegram/${point.photo}" 
-      style="width: 100%; cursor: pointer; margin-right: 10px;" alt="Фото">
-  </div>
+
+<div class="popup-image-wrapper">
+  <img
+    id="popup-photo"
+    src="https://point-map.ru/photo/telegram/${point.photo}"
+    class="popup-image"
+    alt="Фото точки">
+</div>
 `
 
       marker.bindPopup(popupContent)
@@ -692,7 +783,7 @@ await fetch('https://point-map.ru/points')
         document.addEventListener('click', function copyHandler (event) {
           if (event.target && event.target.id === 'copy-coords') {
             const button = event.target // Получаем кнопку
-            const originalText = button.innerText // Сохраняем оригинальный текст
+            const originalText = button.innerText
 
             const textToCopy = `${lat}, ${lon}`
             navigator.clipboard.writeText(textToCopy).then(() => {
@@ -716,7 +807,7 @@ await fetch('https://point-map.ru/points')
 
     if (pointId) {
       if (pointType === 'install' && point) {
-        fetch(`https://point-map.ru/points/?point=${pointId}`)  // Запрос к API
+        fetch(`https://point-map.ru/points/?point=${pointId}`)
           .then(response => response.json())
           .then(point => {
             const rawCoordinates = point[0].coordinates.split(',')
@@ -727,7 +818,7 @@ await fetch('https://point-map.ru/points')
           .catch(err => console.error('Ошибка загрузки точки:', err))
       } else if (pointType === 'take') {
 
-        fetch(`https://point-map.ru/pointsHistory/?id=${pointId}`)  // Запрос к API
+        fetch(`https://point-map.ru/pointsHistory/?id=${pointId}`)
           .then(response => response.json())
           .then(historyPoint => {
             const point = historyPoint[0]
@@ -764,7 +855,7 @@ await fetch('https://point-map.ru/points')
       }
     }
 
-    addGPXControl(pointsArray, 'actual')
+    // addGPXControl(pointsArray, 'actual')
     document.getElementById('msg').innerHTML = ''
 
     const infoDiv = document.createElement('div')
@@ -858,7 +949,6 @@ async function loadPointHistory (pointName, marker) {
     let circles = {}
     let latlngs = []
     const response = await fetch(`https://point-map.ru/pointsHistory?name=${encodeURIComponent(pointName)}`)
-    console.log('response', response)
     if (!response.ok) {
       throw new Error(`Ошибка загрузки истории: ${response.statusText}`)
     }
@@ -997,8 +1087,8 @@ function clearHistory () {
   clearButton.style.display = 'none'
 }
 
-const clearButton = L.DomUtil.create('button', 'custom-button', buttonsContainer)
-clearButton.innerHTML = 'Очистить историю'
+const clearButton = L.DomUtil.create('button', 'glass-button b-1', buttonsContainer)
+clearButton.innerHTML = 'Очистить историю точки'
 clearButton.id = 'clearButton'
 clearButton.style.display = 'none'
 L.DomEvent.on(clearButton, 'click', clearHistory)
@@ -1018,49 +1108,49 @@ map.on('popupopen', function (e) {
   }
 })
 
-function addGPXControl (points, status) {
-  if (status === 'actual') {
-    const gpxControl = L.control({ position: 'bottomleft' }) // Кнопка в левом нижнем углу
-
-    gpxControl.onAdd = function () {
-      const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom')
-      div.innerHTML = '<button id="downloadGPX" class="gpx-button downloadGPX">Скачать GPX актуальных точек</button>'
-
-      L.DomEvent.on(div, 'mousedown dblclick', L.DomEvent.stopPropagation)
-        .on(div, 'click', function () {
-          const gpxContent = generateGPX(points)
-          const date = new Date()
-          const formattedDate = `${String(date.getFullYear()).slice(2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}`
-
-          downloadGPX(`points-${formattedDate}.gpx`, gpxContent)
-        })
-
-      return div
-    }
-
-    gpxControl.addTo(map)
-  } else {
-    const historygGpxControl = L.control({ position: 'bottomleft' }) // Кнопка в левом нижнем углу
-
-    historygGpxControl.onAdd = function () {
-      const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom')
-      div.innerHTML = '<button id="downloadHistoryGPX" class="gpx-button downloadGPX">Скачать GPX архивных точек</button>'
-
-      L.DomEvent.on(div, 'mousedown dblclick', L.DomEvent.stopPropagation)
-        .on(div, 'click', function () {
-          const gpxContent = generateGPX(points)
-          const date = new Date()
-          const formattedDate = `${String(date.getFullYear()).slice(2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}`
-
-          downloadGPX(`history-points-${formattedDate}.gpx`, gpxContent)
-        })
-
-      return div
-    }
-
-    historygGpxControl.addTo(map)
-  }
-}
+// function addGPXControl (points, status) {
+//   if (status === 'actual') {
+//     const gpxControl = L.control({ position: 'bottomleft' }) // Кнопка в левом нижнем углу
+//
+//     gpxControl.onAdd = function () {
+//       const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom')
+//       div.innerHTML = '<button id="downloadGPX" class="gpx-button downloadGPX">Скачать GPX актуальных точек</button>'
+//
+//       L.DomEvent.on(div, 'mousedown dblclick', L.DomEvent.stopPropagation)
+//         .on(div, 'click', function () {
+//           const gpxContent = generateGPX(points)
+//           const date = new Date()
+//           const formattedDate = `${String(date.getFullYear()).slice(2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}`
+//
+//           downloadGPX(`points-${formattedDate}.gpx`, gpxContent)
+//         })
+//
+//       return div
+//     }
+//
+//     gpxControl.addTo(map)
+//   } else {
+//     const historygGpxControl = L.control({ position: 'bottomleft' }) // Кнопка в левом нижнем углу
+//
+//     historygGpxControl.onAdd = function () {
+//       const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom')
+//       div.innerHTML = '<button id="downloadHistoryGPX" class="gpx-button downloadGPX">Скачать GPX архивных точек</button>'
+//
+//       L.DomEvent.on(div, 'mousedown dblclick', L.DomEvent.stopPropagation)
+//         .on(div, 'click', function () {
+//           const gpxContent = generateGPX(points)
+//           const date = new Date()
+//           const formattedDate = `${String(date.getFullYear()).slice(2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}`
+//
+//           downloadGPX(`history-points-${formattedDate}.gpx`, gpxContent)
+//         })
+//
+//       return div
+//     }
+//
+//     historygGpxControl.addTo(map)
+//   }
+// }
 
 function generateGPX (points) {
   let gpx = `<?xml version="1.0" encoding="UTF-8"?>
@@ -1087,6 +1177,14 @@ function downloadGPX (filename, gpxContent) {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+}
+
+function formatDateDDMMYYYY(timestamp) {
+  const d = new Date(timestamp)
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const yyyy = d.getFullYear()
+  return `${dd}.${mm}.${yyyy}`
 }
 
 function downloadOnePointGPX (lat, lon, name, comment) {
@@ -1209,7 +1307,7 @@ async function getHistoryPoints () {
       console.error('Ошибка добавления архивной точки:', error)
       document.getElementById('msg').innerHTML = 'Ошибка. Попробуйте обновить страницу.'
     })
-  addGPXControl(archivePoints, 'history')
+  // addGPXControl(archivePoints, 'history')
 }
 
 function setRangColor (rang, pointId) {

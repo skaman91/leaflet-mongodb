@@ -15,10 +15,12 @@
     "express": "^5.1.0",
     "express-session": "^1.18.1",
     "http": "^0.0.1-security",
+    "idb": "^8.0.3",
     "leaflet": "^1.9.4",
     "leaflet-groupedlayercontrol": "^0.6.1",
     "leaflet-rotatedmarker": "^0.2.0",
     "leaflet.locatecontrol": "^0.84.2",
+    "leaflet.offline": "^3.2.0",
     "mongodb": "^6.16.0",
     "node-fetch": "^3.3.2"
   }
