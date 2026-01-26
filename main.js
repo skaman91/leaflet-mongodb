@@ -39,7 +39,7 @@ const OSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 // Google — overlay с opacity
 const googleSat = L.tileLayer(
-  'http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+  'https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
   {
     subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
     opacity: 0
@@ -808,16 +808,29 @@ ${point.channelLink ? `
     if (pointId) {
       if (pointType === 'install' && point) {
         fetch(`https://point-map.ru/points/?point=${pointId}`)
-          .then(response => response.json())
-          .then(point => {
-            const rawCoordinates = point[0].coordinates.split(',')
-            const lat = parseFloat(rawCoordinates[0])
-            const lon = parseFloat(rawCoordinates[1])
+          .then(res => res.json())
+          .then(data => {
+            // ✅ проверка структуры
+            console.log('data', data)
+            const point = Array.isArray(data) ? data[0] : data
+            if (!point || !point.coordinates) {
+              console.warn('Точка не найдена или нет координат', data)
+              return
+            }
+
+            const raw = point.coordinates.split(',')
+            const lat = parseFloat(raw[0])
+            const lon = parseFloat(raw[1])
+
+            if (isNaN(lat) || isNaN(lon)) {
+              console.warn('Некорректные координаты', point.coordinates)
+              return
+            }
+
             map.setView([lat, lon], 10)
           })
-          .catch(err => console.error('Ошибка загрузки точки:', err))
+          .catch(err => console.error('Ошибка загрузки точки install:', err))
       } else if (pointType === 'take') {
-
         fetch(`https://point-map.ru/pointsHistory/?id=${pointId}`)
           .then(response => response.json())
           .then(historyPoint => {
