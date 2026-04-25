@@ -34,10 +34,18 @@ const proxyConfig = {
 }
 
 app.use(express.json())
+
+const isDev = process.env.NODE_ENV !== 'production'
 app.use(cors({
-  origin: ['https://point-map.ru', 'http://localhost:3000'],
+  origin: isDev
+    ? true  // разрешаем всё локально
+    : ['https://point-map.ru'],
   methods: ['GET']
 }))
+
+if (isDev) {
+  app.use(express.static('.'))
+}
 
 function checkTelegramAuth(data) {
   const { hash, ...fields } = data
