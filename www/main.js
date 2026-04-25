@@ -1,5 +1,8 @@
 import { RADIUS } from './const.js'
 
+if (window.Capacitor?.isNativePlatform?.()) {
+}
+
 const map = L.map('map').setView([60.024828, 30.338195], 9)
 document.getElementById('msg').innerHTML = 'Загружаю точки...'
 let historyMarkers = []

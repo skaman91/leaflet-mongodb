@@ -3,5 +3,6 @@
   <component name="JavaScriptLibraryMappings">
     <file url="PROJECT" libraries="{leaflet, leaflet-gpx, leaflet-rotatedmarker, leaflet-routing-machine, leaflet-ruler, leaflet.locatecontrol, leaflet.polylinemeasure, leaflet.rotatedMarker}" />
     <includedPredefinedLibrary name="Node.js Core" />
+    <excludedPredefinedLibrary name="leaflet-mongodb/liteoffroad-map/node_modules" />
   </component>
 </project>

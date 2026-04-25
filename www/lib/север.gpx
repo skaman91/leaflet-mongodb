@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" creator="SAS.Planet 20.12.12.10106" version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:wptx1="http://www.garmin.com/xmlschemas/WaypointExtension/v1" xmlns:gpxtrx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/WaypointExtension/v1 http://www8.garmin.com/xmlschemas/WaypointExtensionv1.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd">
+  <metadata>
+    <time>2025-04-14T12:23:46Z</time>
+    <link href="http://www.sasgis.org/">
+      <text>SAS.Planet</text>
+    </link>
+    <name>граница север</name>
+    <desc>14.04.2025 15:23:17</desc>
+    <author>
+      <name>sfc</name>
+    </author>
+    <bounds maxlat="60.1327570650248" maxlon="30.312056695587" minlat="60.339685105207" minlon="29.8383001072615"/>
+  </metadata>
+  <rte>
+    <name>граница север</name>
+    <cmt>14.04.2025 15:23:17</cmt>
+    <number>1</number>
+    <extensions>
+      <gpxx:RouteExtension>
+        <gpxx:Categories>
+          <gpxx:Category>default</gpxx:Category>
+        </gpxx:Categories>
+      </gpxx:RouteExtension>
+      <gpxtrx:TrackExtension>
+        <gpxtrx:Categories>
+          <gpxtrx:Category>default</gpxtrx:Category>
+        </gpxtrx:Categories>
+      </gpxtrx:TrackExtension>
+    </extensions>
+    <rtept lat="60.2948127315586" lon="29.8383001072615">
+      <name>граница север 1</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.339685105207" lon="29.8987360276286">
+      <name>граница север 2</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.307692284187" lon="30.0399565875013">
+      <name>граница север 3</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2755737254446" lon="30.010739535212">
+      <name>граница север 4</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2214741624775" lon="30.1397410665911">
+      <name>граница север 5</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2120759891635" lon="30.3018489245081">
+      <name>граница север 6</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1677098842184" lon="30.312056695587">
+      <name>граница север 7</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1327570650248" lon="30.2217596276424">
+      <name>граница север 8</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.1712105732739" lon="30.1822812736041">
+      <name>граница север 9</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.196219458312" lon="30.0657231945997">
+      <name>граница север 10</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2017829356918" lon="29.9744333342114">
+      <name>граница север 11</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2069420534183" lon="29.9455081061191">
+      <name>граница север 12</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2233994191642" lon="29.9389845676157">
+      <name>граница север 13</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2324771085078" lon="29.924221986325">
+      <name>граница север 14</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2590857495963" lon="29.8593716041277">
+      <name>граница север 15</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.2948123909127" lon="29.83830045448">
+      <name>граница север 16</name>
+      <sym>waypoint</sym>
+    </rtept>
+  </rte>
+</gpx>

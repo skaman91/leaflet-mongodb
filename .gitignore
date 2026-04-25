@@ -1,3 +1,4 @@
 /node_modules
 /auth
 /deploy.sh
+/www/auth

@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" creator="SAS.Planet 20.12.12.10106" version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:wptx1="http://www.garmin.com/xmlschemas/WaypointExtension/v1" xmlns:gpxtrx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/WaypointExtension/v1 http://www8.garmin.com/xmlschemas/WaypointExtensionv1.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd">
+  <metadata>
+    <time>2025-04-16T22:55:55Z</time>
+    <link href="http://www.sasgis.org/">
+      <text>SAS.Planet</text>
+    </link>
+    <name>граница восток</name>
+    <desc>14.04.2025 15:18:12</desc>
+    <author>
+      <name>sfc</name>
+    </author>
+    <bounds maxlat="59.8895125272105" maxlon="30.8986147835524" minlat="60.0260862281808" minlon="30.5323406969778"/>
+  </metadata>
+  <rte>
+    <name>граница восток</name>
+    <cmt>14.04.2025 15:18:12</cmt>
+    <number>1</number>
+    <extensions>
+      <gpxx:RouteExtension>
+        <gpxx:Categories>
+          <gpxx:Category>default</gpxx:Category>
+        </gpxx:Categories>
+      </gpxx:RouteExtension>
+      <gpxtrx:TrackExtension>
+        <gpxtrx:Categories>
+          <gpxtrx:Category>default</gpxtrx:Category>
+        </gpxtrx:Categories>
+      </gpxtrx:TrackExtension>
+    </extensions>
+    <rtept lat="59.8951014400597" lon="30.5323406969778">
+      <name>граница восток 1</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9893907215164" lon="30.5777802328092">
+      <name>граница восток 2</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.0035925806354" lon="30.6381361416665">
+      <name>граница восток 3</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9713724148148" lon="30.6363292830813">
+      <name>граница восток 4</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9710212934656" lon="30.6228703464572">
+      <name>граница восток 5</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9695558896357" lon="30.6229564929685">
+      <name>граница восток 6</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9668168621392" lon="30.6285330285868">
+      <name>граница восток 7</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9632296426381" lon="30.6195208062968">
+      <name>граница восток 8</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9574357597265" lon="30.6116327687982">
+      <name>граница восток 9</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9495391630423" lon="30.6393280843189">
+      <name>граница восток 10</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9596380359336" lon="30.6540041028709">
+      <name>граница восток 11</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9690465896845" lon="30.6420742126254">
+      <name>граница восток 12</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9953358670215" lon="30.6560135745922">
+      <name>граница восток 13</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9951855109357" lon="30.6757108887456">
+      <name>граница восток 14</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9677471986716" lon="30.6853752902994">
+      <name>граница восток 15</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9652768432092" lon="30.6926709854165">
+      <name>граница восток 16</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9605080644056" lon="30.6862766893061">
+      <name>граница восток 17</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9575433555542" lon="30.6774790153389">
+      <name>граница восток 18</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9574784872795" lon="30.6669651735585">
+      <name>граница восток 19</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9538815217708" lon="30.6607316433264">
+      <name>граница восток 20</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.950957176023" lon="30.6469662283573">
+      <name>граница восток 21</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9476156663494" lon="30.6461080806327">
+      <name>граница восток 22</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9447956659546" lon="30.6559889248695">
+      <name>граница восток 23</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9510711655472" lon="30.6785623959389">
+      <name>граница восток 24</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9490081186837" lon="30.694441073307">
+      <name>граница восток 25</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9560563320387" lon="30.7314341000404">
+      <name>граница восток 26</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9745292875936" lon="30.7300608090248">
+      <name>граница восток 27</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9695469002695" lon="30.7685129574623">
+      <name>граница восток 28</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="60.0260862281808" lon="30.8302589709317">
+      <name>граница восток 29</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.990563210424" lon="30.8824786141188">
+      <name>граница восток 30</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.9163872088933" lon="30.8986147835524">
+      <name>граница восток 31</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.8895125272105" lon="30.594851913363">
+      <name>граница восток 32</name>
+      <sym>waypoint</sym>
+    </rtept>
+    <rtept lat="59.8951014400596" lon="30.5323514258138">
+      <name>граница восток 33</name>
+      <sym>waypoint</sym>
+    </rtept>
+  </rte>
+</gpx>

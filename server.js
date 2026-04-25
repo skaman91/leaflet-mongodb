@@ -3,9 +3,12 @@ import { BOT_TOKEN, MONGO_URL } from './auth/data.mjs'
 import cors from 'cors'
 import express from 'express'
 import crypto from 'crypto'
-import axios from 'axios'
 import fs from 'fs'
 import https from 'https'
+import axios from "axios";
+import { HttpsProxyAgent } from "https-proxy-agent";
+
+const proxyAgent = new HttpsProxyAgent("http://95.85.229.24:8888");
 
 const client = new MongoClient(MONGO_URL)
 await client.connect()
@@ -20,6 +23,11 @@ const trackPointsCollection = db.collection('track_points')
 
 const PORT = 3000
 const app = express()
+const proxyConfig = {
+  host: "95.85.229.24",
+  port: 8888,
+  protocol: "http"
+}
 
 app.use(express.json())
 app.use(cors())
@@ -59,9 +67,13 @@ app.get('/photo/telegram/:fileId', async (req, res) => {
   const fileId = req.params.fileId
 
   try {
-    const tgRes = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getFile`, {
-      params: { file_id: fileId }
-    })
+    const tgRes = await axios.get(
+      `https://api.telegram.org/bot${BOT_TOKEN}/getFile`,
+      {
+        params: { file_id: fileId },
+        httpsAgent: proxyAgent
+      }
+    )
 
     if (!tgRes.data.ok) {
       console.error('❌ Ошибка Telegram API:', tgRes.data)
@@ -74,13 +86,14 @@ app.get('/photo/telegram/:fileId', async (req, res) => {
     const fileStream = await axios({
       url: fileUrl,
       method: 'GET',
-      responseType: 'stream'
+      responseType: 'stream',
+      httpsAgent: proxyAgent
     })
 
     res.setHeader('Content-Type', fileStream.headers['content-type'] || 'application/octet-stream')
     fileStream.data.pipe(res)
   } catch (err) {
-    console.error('🔥 Ошибка при получении изображения:', err.message)
+    console.error('🔥 Ошибка при получении изображения:', err)
     if (err.response?.data) {
       console.error('🔍 Telegram API ответ:', err.response.data)
     }

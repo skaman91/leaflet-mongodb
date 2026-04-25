@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SERVER=vpn
-USER=root
+SERVER=map
+USER=skaman
 BASEDIR=$(dirname "$0")
 VERSION=$(date +%s)
 

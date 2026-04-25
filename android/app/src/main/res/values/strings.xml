@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">points</string>
+    <string name="title_activity_main">points</string>
+    <string name="package_name">com.pointmap.app</string>
+    <string name="custom_url_scheme">com.pointmap.app</string>
+</resources>
