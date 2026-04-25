@@ -5,6 +5,7 @@ import express from 'express'
 import crypto from 'crypto'
 import fs from 'fs'
 import https from 'https'
+import path from 'path'
 import axios from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
 
@@ -21,6 +22,9 @@ const stateCollection = db.collection('state')
 const tracksCollection = db.collection('tracks')
 const trackPointsCollection = db.collection('track_points')
 
+const PHOTO_CACHE_DIR = path.join(process.cwd(), 'cache', 'photos')
+fs.mkdirSync(PHOTO_CACHE_DIR, { recursive: true })
+
 const PORT = 3000
 const app = express()
 const proxyConfig = {
@@ -30,7 +34,10 @@ const proxyConfig = {
 }
 
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+  origin: ['https://point-map.ru', 'http://localhost:3000'],
+  methods: ['GET']
+}))
 
 function checkTelegramAuth(data) {
   const { hash, ...fields } = data
@@ -64,15 +71,21 @@ app.get('/auth', (req, res) => {
 
 // загрузка фото точки
 app.get('/photo/telegram/:fileId', async (req, res) => {
-  const fileId = req.params.fileId
+  const fileId = req.params.fileId.replace(/[^a-zA-Z0-9_-]/g, '')
+  if (!fileId) return res.status(400).send('Некорректный fileId')
+
+  const cachePath = path.join(PHOTO_CACHE_DIR, fileId)
+
+  // отдаём из кеша если файл уже скачан
+  if (fs.existsSync(cachePath)) {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    return res.sendFile(cachePath)
+  }
 
   try {
     const tgRes = await axios.get(
       `https://api.telegram.org/bot${BOT_TOKEN}/getFile`,
-      {
-        params: { file_id: fileId },
-        httpsAgent: proxyAgent
-      }
+      { params: { file_id: fileId }, httpsAgent: proxyAgent }
     )
 
     if (!tgRes.data.ok) {
@@ -90,13 +103,34 @@ app.get('/photo/telegram/:fileId', async (req, res) => {
       httpsAgent: proxyAgent
     })
 
-    res.setHeader('Content-Type', fileStream.headers['content-type'] || 'application/octet-stream')
-    fileStream.data.pipe(res)
+    const contentType = fileStream.headers['content-type'] || 'image/jpeg'
+    res.setHeader('Content-Type', contentType)
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+
+    const cacheWriteStream = fs.createWriteStream(cachePath)
+
+    fileStream.data.on('data', chunk => {
+      res.write(chunk)
+      cacheWriteStream.write(chunk)
+    })
+
+    fileStream.data.on('end', () => {
+      res.end()
+      cacheWriteStream.end()
+    })
+
+    fileStream.data.on('error', err => {
+      console.error('🔥 Ошибка стрима:', err)
+      cacheWriteStream.destroy()
+      fs.unlink(cachePath, () => {})
+      if (!res.headersSent) res.status(500).send('Ошибка загрузки изображения')
+    })
+
+    cacheWriteStream.on('error', () => fs.unlink(cachePath, () => {}))
+
   } catch (err) {
     console.error('🔥 Ошибка при получении изображения:', err)
-    if (err.response?.data) {
-      console.error('🔍 Telegram API ответ:', err.response.data)
-    }
+    if (err.response?.data) console.error('🔍 Telegram API ответ:', err.response.data)
     res.status(500).send('Ошибка загрузки изображения')
   }
 })

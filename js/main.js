@@ -4,10 +4,6 @@ import { RADIUS } from './const.js'
 if (window.Capacitor?.isNativePlatform?.()) {
   const { StatusBar } = window.Capacitor.Plugins;
   StatusBar.setOverlaysWebView({ overlay: false });
-}
-
-if (window.Capacitor?.isNativePlatform?.()) {
-  console.log("!!!!!!!!!")
   document.body.classList.add("capacitor-app");
 }
 
@@ -346,13 +342,6 @@ const ButtonsControl = L.Control.extend({
     showButton.id = 'showButton'
     L.DomEvent.on(showButton, 'click', getHistoryPoints)
 
-    // Кнопка "Очистить историю" (скрыта по умолчанию)
-    const clearButton = L.DomUtil.create('button', 'glass-button', buttonsContainer)
-    clearButton.innerHTML = 'Очистить историю'
-    clearButton.id = 'clearButton'
-    clearButton.style.display = 'none'
-    L.DomEvent.on(clearButton, 'click', clearMarkers)
-
     return buttonsContainer
   }
 })
@@ -384,14 +373,6 @@ new L.GPX('./lib/v1.gpx', {
 //   },
 //   get_marker: function () { return null }
 // }).addTo(map)
-
-// Функция удаления маркеров
-function clearMarkers () {
-  historyMarkers.forEach(marker => map.removeLayer(marker))
-  historyMarkers = []
-
-  toggleButtons() // Переключаем кнопки
-}
 
 // Функция переключения кнопок
 function toggleButtons () {
@@ -568,6 +549,10 @@ searchControl.onAdd = function (map) {
     if (!input) return // Если нажали "Отмена", ничего не делать
 
     const coodinates = parseCoordinates(input)
+    if (!coodinates) {
+      alert('Ошибка: не удалось распознать формат координат')
+      return
+    }
     const [lat, lng] = coodinates.split(',').map(coord => parseFloat(coord.trim()))
 
     if (isNaN(lat) || isNaN(lng)) {
@@ -615,6 +600,17 @@ coordDisplay.addEventListener('click', function () {
 map.on('move', updateCoordinates)
 updateCoordinates()
 
+function openFullSizeImage (imageUrl) {
+  const modal = document.createElement('div')
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;justify-content:center;align-items:center;z-index:9999'
+  const img = document.createElement('img')
+  img.src = imageUrl
+  img.style.cssText = 'max-width:90%;max-height:90%;cursor:pointer'
+  img.addEventListener('click', () => document.body.removeChild(modal))
+  modal.appendChild(img)
+  document.body.appendChild(modal)
+}
+
 const markers = []
 
 await fetch('https://point-map.ru/points')
@@ -627,7 +623,6 @@ await fetch('https://point-map.ru/points')
   .then(data => {
     let pointsArray = []
     let circles = {}
-    let historyLines = {} // Хранение линий истории для каждой точки
     showNoInstallPopup(data)
     data.sort((a, b) => {
       // Извлекаем число из имени (после слова "Точка")
@@ -681,6 +676,12 @@ await fetch('https://point-map.ru/points')
 
       marker.addTo(map)
       markers.push(marker)
+
+      if (point.photo) {
+        marker.once('mouseover', () => {
+          new Image().src = `https://point-map.ru/photo/telegram/${point.photo}`
+        })
+      }
 
       if (rang === 'Лайт') {
         litePoints += 1
@@ -761,129 +762,82 @@ ${point.channelLink ? `
 
       marker.bindPopup(popupContent)
 
-// Используем делегирование событий для обработки клика
-      marker.on('popupopen', () => {
-        // Находим элемент попапа и добавляем обработчик для клика по изображениям внутри
-        const popupElement = marker.getPopup().getElement()
-        popupElement.addEventListener('click', function (event) {
-          // Проверяем, был ли клик по изображению
-          if (event.target && event.target.id === 'popup-photo') {
-            openFullSizeImage(event.target.src)
-          }
-        })
-      })
-
-// Функция для открытия изображения в полном размере
-      function openFullSizeImage (imageUrl) {
-        // Создаем модальное окно
-        const modal = document.createElement('div')
-        modal.style.position = 'fixed'
-        modal.style.top = '0'
-        modal.style.left = '0'
-        modal.style.width = '100%'
-        modal.style.height = '100%'
-        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'
-        modal.style.display = 'flex'
-        modal.style.justifyContent = 'center'
-        modal.style.alignItems = 'center'
-        modal.style.zIndex = '9999'
-
-        // Создаем изображение
-        const img = document.createElement('img')
-        img.src = imageUrl
-        img.style.maxWidth = '90%'
-        img.style.maxHeight = '90%'
-        img.style.cursor = 'pointer'
-
-        // Закрытие модального окна при клике на изображение
-        img.addEventListener('click', () => {
-          document.body.removeChild(modal)
-        })
-
-        modal.appendChild(img)
-        document.body.appendChild(modal)
-      }
-
-      // Обработчик при открытии попапа
       marker.on('popupopen', function (e) {
+        const popupEl = e.popup._contentNode
+
+        // popupEl сохраняется между открытиями, но его innerHTML сбрасывается Leaflet —
+        // дочерние элементы пересоздаются, поэтому слушатели на них вешаем каждый раз заново
+
         setTimeout(() => {
-          const popupEl = e.popup._contentNode
-          if (!popupEl) return
-
-          const checkbox = popupEl.querySelector('.show-circle')
-          if (!checkbox) return
-
           const key = `${lat},${lon}`
-          checkbox.checked = !!circles[key]
 
-          checkbox.addEventListener('change', function () {
-            if (checkbox.checked) {
-              if (!circles[key]) {
-                circles[key] = L.circle([lat, lon], {
-                  radius: RADIUS,
-                  color: 'green',
-                  fillColor: 'blue',
-                  fillOpacity: 0.1
-                }).addTo(map)
+          // --- чекбокс (пересоздаётся) ---
+          const checkbox = popupEl.querySelector('.show-circle')
+          if (checkbox) {
+            checkbox.checked = !!circles[key]
+            checkbox.addEventListener('change', function () {
+              if (checkbox.checked) {
+                if (!circles[key]) {
+                  circles[key] = L.circle([lat, lon], {
+                    radius: RADIUS,
+                    color: 'green',
+                    fillColor: 'blue',
+                    fillOpacity: 0.1
+                  }).addTo(map)
+                }
+              } else {
+                if (circles[key]) {
+                  map.removeLayer(circles[key])
+                  delete circles[key]
+                }
               }
-            } else {
-              if (circles[key]) {
-                map.removeLayer(circles[key])
-                delete circles[key]
-              }
-            }
-          })
-
-          // Обработчик загрузки истории точки
-          const historyBtn = popupEl.querySelector('.load-history')
-          if (historyBtn) {
-            historyBtn.addEventListener('click', async function () {
-              const pointName = this.dataset.name
-              await loadPointHistory(pointName, marker)
             })
           }
 
-          // ===== ЗАГРУЗКА КАРТИНКИ СО СПИННЕРОМ =====
+          // --- кнопка истории (пересоздаётся) ---
+          const historyBtn = popupEl.querySelector('.load-history')
+          if (historyBtn) {
+            historyBtn.addEventListener('click', async function () {
+              await loadPointHistory(this.dataset.name, marker)
+            })
+          }
+
+          // --- фото (пересоздаётся): если уже в кеше браузера — скрываем спиннер сразу ---
           const img = popupEl.querySelector('.popup-image')
           const spinner = popupEl.querySelector('.spinner')
-
           if (img && spinner) {
-            // чтобы не перезапускалось при повторном открытии
-            if (!img.src) {
-              img.src = img.dataset.src
-
-              img.onload = () => {
-                spinner.style.display = 'none'
-                img.style.display = 'block'
-              }
-
-              img.onerror = () => {
-                spinner.style.display = 'none'
-                img.style.display = 'block'
-              }
+            img.src = img.dataset.src
+            if (img.complete && img.naturalWidth > 0) {
+              spinner.style.display = 'none'
+              img.style.display = 'block'
+            } else {
+              img.onload = () => { spinner.style.display = 'none'; img.style.display = 'block' }
+              img.onerror = () => { spinner.style.display = 'none'; img.style.display = 'block' }
             }
           }
+
+          // --- клик на фото и копирование координат: вешаем только один раз на popupEl ---
+          if (popupEl.dataset.listenersAttached) return
+          popupEl.dataset.listenersAttached = '1'
+
+          popupEl.addEventListener('click', function (event) {
+            if (event.target && event.target.id === 'popup-photo') {
+              openFullSizeImage(event.target.src)
+            }
+          })
+
+          document.addEventListener('click', function copyHandler (event) {
+            if (event.target && event.target.id === 'copy-coords') {
+              const button = event.target
+              const originalText = button.innerText
+              navigator.clipboard.writeText(`${lat}, ${lon}`).then(() => {
+                button.innerHTML = `<span style="color: green; font-weight: bold;">✅ Скопировано!</span>`
+                setTimeout(() => { button.innerText = originalText }, 1000)
+              }).catch(err => console.error('Ошибка копирования:', err))
+              document.removeEventListener('click', copyHandler)
+            }
+          })
         }, 100)
-      })
-      marker.on('popupopen', () => {
-        document.addEventListener('click', function copyHandler (event) {
-          if (event.target && event.target.id === 'copy-coords') {
-            const button = event.target // Получаем кнопку
-            const originalText = button.innerText
-
-            const textToCopy = `${lat}, ${lon}`
-            navigator.clipboard.writeText(textToCopy).then(() => {
-              button.innerHTML = `<span style="color: green; font-weight: bold;">✅ Скопировано!</span>`
-              // Через 1 секунду возвращаем обратно координаты
-              setTimeout(() => {
-                button.innerText = originalText
-              }, 1000)
-            }).catch(err => console.error('Ошибка копирования:', err))
-
-            // Убираем обработчик после копирования (чтобы не дублировался)
-            document.removeEventListener('click', copyHandler)
-          }
-        })
       })
 
     }
@@ -1176,14 +1130,11 @@ async function loadPointHistory (pointName, marker) {
  * Функция очистки всех архивных точек и линий
  */
 function clearHistory () {
-  // Удаляем линии
   Object.values(historyLines).forEach(line => map.removeLayer(line))
   historyLines = {}
-
-  // Удаляем маркеры архивных точек
   historyMarkers.forEach(marker => map.removeLayer(marker))
   historyMarkers = []
-  clearButton.style.display = 'none'
+  toggleButtons()
 }
 
 const clearButton = L.DomUtil.create('button', 'glass-button b-1', buttonsContainer)
@@ -1443,6 +1394,8 @@ function isWithinRadius (userLat, userLng, markerLat, markerLng, radiusInMeters)
   return distance <= radiusInMeters
 }
 
+let activePoint = null
+
 // Отслеживаем положение пользователя
 navigator.geolocation.watchPosition(
   position => {
@@ -1475,8 +1428,6 @@ navigator.geolocation.watchPosition(
   },
   { enableHighAccuracy: true }
 )
-
-let activePoint = null
 
 function updateDistance (userLat, userLng) {
   if (!activePoint) return
