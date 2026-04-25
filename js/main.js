@@ -351,7 +351,7 @@ const noInstallPopup = L.popup()
 // Добавление кнопок на карту
 map.addControl(new ButtonsControl())
 
-new L.GPX('./lib/v1.gpx', {
+const gpxLayer = new L.GPX('./lib/v1.gpx', {
   async: true,
   polyline_options: { color: 'red', weight: 3, opacity: 0.9 },
   marker_options: {
@@ -612,6 +612,8 @@ function openFullSizeImage (imageUrl) {
 }
 
 const markers = []
+const markersByType = { Лайт: [], Медиум: [], Хард: [], Atv: [], else: [] }
+const LS_KEY = 'liteoffroad_layers'
 
 await fetch('https://point-map.ru/points')
   .then(response => {
@@ -694,6 +696,9 @@ await fetch('https://point-map.ru/points')
       } else {
         elsePoints += 1
       }
+
+      const typeKey = ['Лайт', 'Хард', 'Медиум', 'Atv'].includes(rang) ? rang : 'else'
+      markersByType[typeKey].push(marker)
 
       const popupContent = `
   <b>${getRang(rang)} ${name}</b><br>
@@ -914,33 +919,120 @@ ${point.channelLink ? `
     const infoDiv = document.createElement('div')
     infoDiv.id = 'points-info'
     infoDiv.innerHTML = `
-  <div>🟢 Лайт: <span id="lite-count">0</span></div>
-  <div>🔵 Ни то ни се: <span id="medium-count">0</span></div>
-  <div>🔴 Хард: <span id="hard-count">0</span></div>
-  <div>🟠 Atv: <span id="atv-count">0</span></div>
-  <div>🟣 Прочее: <span id="else-count">0</span></div>
-  <div id="noInstall">На руках: <span id="noInstall-count">0</span></div>
+  <div id="layers-header">Слои <span id="layers-arrow">▾</span></div>
+  <div id="layers-body">
+    <label class="layer-row">
+      <input type="checkbox" id="toggle-gpx" checked>
+      <span class="type-label">Зона игры</span>
+    </label>
+    <hr class="layer-divider">
+    <label class="layer-row layer-master">
+      <input type="checkbox" id="toggle-all-points" checked>
+      <span class="type-label">Все точки</span>
+    </label>
+    <div id="type-toggles">
+      <div class="layer-row layer-type">
+        <input type="checkbox" class="toggle-type" data-type="Лайт" checked>
+        <span class="type-label">🟢 Лайт</span>
+        <span class="type-count" id="lite-count">${litePoints}</span>
+      </div>
+      <div class="layer-row layer-type">
+        <input type="checkbox" class="toggle-type" data-type="Медиум" checked>
+        <span class="type-label">🔵 Ни то ни се</span>
+        <span class="type-count" id="medium-count">${mediumPoints}</span>
+      </div>
+      <div class="layer-row layer-type">
+        <input type="checkbox" class="toggle-type" data-type="Хард" checked>
+        <span class="type-label">🔴 Хард</span>
+        <span class="type-count" id="hard-count">${hardPoints}</span>
+      </div>
+      <div class="layer-row layer-type">
+        <input type="checkbox" class="toggle-type" data-type="Atv" checked>
+        <span class="type-label">🟠 ATV</span>
+        <span class="type-count" id="atv-count">${atvPoints}</span>
+      </div>
+    </div>
+    <hr class="layer-divider">
+    <div id="noInstall">На руках: <span id="noInstall-count">${noInstall}</span></div>
+  </div>
 `
     document.body.appendChild(infoDiv)
-    document.getElementById('lite-count').textContent = litePoints
-    document.getElementById('hard-count').textContent = hardPoints
-    document.getElementById('medium-count').textContent = mediumPoints
-    document.getElementById('atv-count').textContent = atvPoints
-    document.getElementById('else-count').textContent = elsePoints
-    document.getElementById('noInstall-count').textContent = noInstall
 
-// Обработчик клика на строку "На руках"
-    document.getElementById('noInstall').addEventListener('click', function (event) {
-      const rect = event.target.getBoundingClientRect()
+    // свернуть / развернуть панель
+    document.getElementById('layers-header').addEventListener('click', () => {
+      const body = document.getElementById('layers-body')
+      const arrow = document.getElementById('layers-arrow')
+      const collapsed = body.style.display === 'none'
+      body.style.display = collapsed ? '' : 'none'
+      arrow.textContent = collapsed ? '▾' : '▸'
+      saveLayerState()
+    })
+
+    // зона игры
+    document.getElementById('toggle-gpx').addEventListener('change', function () {
+      this.checked ? gpxLayer.addTo(map) : map.removeLayer(gpxLayer)
+      saveLayerState()
+    })
+
+    // все точки — включает все ранги
+    document.getElementById('toggle-all-points').addEventListener('change', function () {
+      const allOn = this.checked
+      this.indeterminate = false
+      document.querySelectorAll('.toggle-type').forEach(cb => { cb.checked = allOn })
+      for (const [type, mkrs] of Object.entries(markersByType)) {
+        mkrs.forEach(m => allOn ? m.addTo(map) : map.removeLayer(m))
+      }
+      saveLayerState()
+    })
+
+    // отдельный тип точек — синхронизирует мастер-чекбокс
+    document.querySelectorAll('.toggle-type').forEach(cb => {
+      cb.addEventListener('change', function () {
+        const type = this.dataset.type
+        ;(markersByType[type] || []).forEach(m => this.checked ? m.addTo(map) : map.removeLayer(m))
+        syncMasterCheckbox()
+        saveLayerState()
+      })
+    })
+
+    // клик по строке типа (div) — переключает чекбокс внутри
+    document.getElementById('type-toggles').addEventListener('click', function (e) {
+      if (e.target.classList.contains('toggle-type')) return
+      const row = e.target.closest('.layer-type')
+      if (row) row.querySelector('.toggle-type').click()
+    })
+
+    // восстанавливаем состояние из localStorage
+    const savedState = loadLayerState()
+    if (savedState) {
+      if (savedState.collapsed) {
+        document.getElementById('layers-body').style.display = 'none'
+        document.getElementById('layers-arrow').textContent = '▸'
+      }
+      if (savedState.gpx === false) {
+        document.getElementById('toggle-gpx').checked = false
+        map.removeLayer(gpxLayer)
+      }
+      if (savedState.types) {
+        for (const [type, visible] of Object.entries(savedState.types)) {
+          const typeCb = document.querySelector(`.toggle-type[data-type="${type}"]`)
+          if (typeCb && !visible) {
+            typeCb.checked = false
+            ;(markersByType[type] || []).forEach(m => map.removeLayer(m))
+          }
+        }
+      }
+      syncMasterCheckbox()
+    }
+
+    // клик на "На руках"
+    document.getElementById('noInstall').addEventListener('click', function () {
+      const rect = this.getBoundingClientRect()
       const clickPoint = map.containerPointToLatLng([
         rect.left + rect.width / 2 - 130,
         rect.top - 70
       ])
-
-      const noInstallPoints = data.filter(point => !point.install)
-
-      showNoInstallPopup(noInstallPoints)
-
+      showNoInstallPopup(data.filter(point => !point.install))
       noInstallPopup.setLatLng(clickPoint).openOn(map)
     })
 
@@ -1477,6 +1569,35 @@ function calculateDistance (lat1, lng1, lat2, lng2) {
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return earthRadius * c
+}
+
+function saveLayerState () {
+  const types = {}
+  document.querySelectorAll('.toggle-type').forEach(cb => {
+    types[cb.dataset.type] = cb.checked
+  })
+  localStorage.setItem(LS_KEY, JSON.stringify({
+    gpx: document.getElementById('toggle-gpx')?.checked ?? true,
+    types,
+    collapsed: document.getElementById('layers-body')?.style.display === 'none'
+  }))
+}
+
+function loadLayerState () {
+  try {
+    return JSON.parse(localStorage.getItem(LS_KEY))
+  } catch {
+    return null
+  }
+}
+
+function syncMasterCheckbox () {
+  const cbs = [...document.querySelectorAll('.toggle-type')]
+  const checkedCount = cbs.filter(cb => cb.checked).length
+  const master = document.getElementById('toggle-all-points')
+  if (!master) return
+  master.checked = checkedCount > 0
+  master.indeterminate = checkedCount > 0 && checkedCount < cbs.length
 }
 
 function formatDaysHoursSince (timestamp) {
