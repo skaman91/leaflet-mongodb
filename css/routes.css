@@ -1,0 +1,683 @@
+/* ─── Боковая панель маршрутов ───────────────────────────────────────────────── */
+
+#routes-panel {
+    position: fixed;
+    top: 0;
+    right: -340px;
+    width: 320px;
+    height: 100%;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(14px) saturate(1.3);
+    -webkit-backdrop-filter: blur(14px) saturate(1.3);
+    border-left: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.12);
+    z-index: 20000;
+    display: flex;
+    flex-direction: column;
+    transition: right 0.28s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 13px;
+}
+
+#routes-panel.open {
+    right: 0;
+}
+
+/* Шапка панели */
+#rp-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+    flex-shrink: 0;
+}
+
+#rp-title {
+    flex: 1;
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.rp-back, #rp-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #666;
+    padding: 2px 6px;
+    border-radius: 5px;
+    line-height: 1;
+}
+.rp-back:hover, #rp-close:hover { background: rgba(0,0,0,0.06); color: #333; }
+
+/* Auth-блок */
+#rp-auth {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    flex-shrink: 0;
+}
+
+.rp-auth-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.rp-auth-name {
+    font-size: 12px;
+    color: #555;
+    font-weight: 500;
+}
+
+.rp-logout {
+    font-size: 11px;
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 2px 8px;
+    cursor: pointer;
+    color: #888;
+    font-family: inherit;
+}
+.rp-logout:hover { background: #f5f5f5; }
+
+.rp-auth-name-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: #2a6cff;
+    font-family: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.rp-auth-name-btn:hover { color: #1a5cef; }
+
+.rp-role-badge {
+    display: inline-block;
+    background: #cc0000;
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    vertical-align: middle;
+    letter-spacing: 0.3px;
+}
+
+.rp-auth-hint {
+    font-size: 11px;
+    color: #999;
+    margin-bottom: 6px;
+    line-height: 1.5;
+}
+
+/* Форма авторизации */
+.rp-auth-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.rp-tab {
+    flex: 1;
+    padding: 5px;
+    background: rgba(0,0,0,0.04);
+    border: none;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    color: #888;
+    transition: background 0.15s, color 0.15s;
+}
+.rp-tab.active {
+    background: #2a6cff;
+    color: white;
+}
+
+#rp-auth-form input {
+    display: block;
+    width: 100%;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 8px;
+    padding: 7px 9px;
+    font-size: 12px;
+    font-family: inherit;
+    margin-bottom: 7px;
+    outline: none;
+    background: rgba(255,255,255,0.8);
+}
+#rp-auth-form input:focus { border-color: #2a6cff; }
+
+/* Контентная область */
+#rp-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    touch-action: pan-y;
+    padding: 8px 0;
+}
+
+/* Футер */
+#rp-footer {
+    padding: 10px 14px;
+    border-top: 1px solid rgba(0, 0, 0, 0.07);
+    flex-shrink: 0;
+}
+
+/* Фильтры */
+.rp-filters {
+    padding: 0 12px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    margin-bottom: 6px;
+}
+
+.rp-filters select {
+    width: 100%;
+    padding: 5px 8px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+}
+.rp-filters select:focus { border-color: #2a6cff; }
+
+.rp-show-all-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 2px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #444;
+    cursor: pointer;
+    user-select: none;
+}
+.rp-show-all-label input {
+    accent-color: #2a6cff;
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* Карточки маршрутов */
+.rp-card {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    transition: background 0.15s;
+}
+
+.rp-card:hover { background: rgba(42, 108, 255, 0.05); }
+.rp-card.active { background: rgba(42, 108, 255, 0.08); }
+
+.rp-card-title {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rp-card-meta {
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 3px;
+}
+
+.rp-card-footer {
+    display: flex;
+    gap: 8px;
+    font-size: 11px;
+    color: #999;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.rp-author { margin-left: auto; font-size: 10px; color: #bbb; }
+
+.rp-card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 3px;
+}
+
+.rp-diff-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.rp-diff-pill {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+}
+
+.rp-ridden-list {
+    margin-bottom: 12px;
+}
+
+.rp-ridden-user {
+    display: inline-block;
+    background: rgba(42,108,255,0.08);
+    border-radius: 20px;
+    padding: 2px 9px;
+    font-size: 11px;
+    margin: 2px 3px 2px 0;
+    color: #444;
+}
+
+.rp-btn-done {
+    opacity: 0.6;
+    cursor: default !important;
+}
+
+.rp-admin-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 7px 10px;
+    background: rgba(200, 0, 0, 0.05);
+    border: 1px solid rgba(200, 0, 0, 0.12);
+    border-radius: 9px;
+}
+
+.rp-admin-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: #990000;
+    white-space: nowrap;
+}
+
+.rp-btn-ban {
+    flex: 1;
+    padding: 5px 8px;
+    background: rgba(200, 0, 0, 0.08);
+    color: #cc0000;
+    border: 1px solid rgba(200, 0, 0, 0.2);
+    border-radius: 7px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+}
+.rp-btn-ban:hover { background: rgba(200, 0, 0, 0.15); }
+
+/* Вспомогательные */
+.rp-diff { color: #f5a623; }
+.rp-cond { font-size: 11px; }
+
+.rp-loading, .rp-empty {
+    text-align: center;
+    color: #aaa;
+    padding: 30px 14px;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.rp-empty-sm {
+    color: #bbb;
+    font-size: 12px;
+    padding: 8px 0;
+}
+
+/* ─── Детальная карточка ───────────────────────────────────────────────────── */
+.rp-detail { padding: 4px 14px 16px; overflow-x: hidden; }
+
+.rp-detail-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.rp-detail-author { font-size: 12px; color: #888; margin-bottom: 8px; }
+
+.rp-detail-desc {
+    font-size: 12px;
+    color: #444;
+    line-height: 1.55;
+    background: rgba(0,0,0,0.04);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+}
+
+.rp-detail-stats {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 12px;
+    line-height: 1.7;
+}
+
+.rp-author-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-bottom: 10px;
+}
+
+.rp-btn-edit {
+    padding: 7px;
+    background: rgba(42,108,255,0.08);
+    color: #2a6cff;
+    border: 1px solid rgba(42,108,255,0.2);
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+}
+.rp-btn-edit:hover { background: rgba(42,108,255,0.15); }
+
+.rp-btn-delete {
+    padding: 7px;
+    background: rgba(204,34,0,0.06);
+    color: #cc2200;
+    border: 1px solid rgba(204,34,0,0.15);
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+}
+.rp-btn-delete:hover { background: rgba(204,34,0,0.12); }
+
+.rp-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-bottom: 14px;
+}
+
+/* Форма отзыва */
+.rp-review-form {
+    border-top: 1px solid rgba(0,0,0,0.07);
+    padding-top: 12px;
+    margin-bottom: 14px;
+}
+
+.rp-section-title {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.rp-stars {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.rp-star {
+    font-size: 22px;
+    cursor: pointer;
+    color: #ddd;
+    user-select: none;
+    transition: color 0.1s;
+}
+.rp-star.active, .rp-star:hover { color: #f5a623; }
+
+.rp-review-form select,
+.rp-review-form textarea,
+.rp-form input[type="text"],
+.rp-form textarea,
+.rp-form select {
+    width: 100%;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 8px;
+    padding: 7px 9px;
+    font-size: 12px;
+    font-family: inherit;
+    margin-bottom: 7px;
+    outline: none;
+    resize: vertical;
+    background: rgba(255,255,255,0.8);
+}
+.rp-review-form select:focus,
+.rp-review-form textarea:focus,
+.rp-form input:focus,
+.rp-form textarea:focus,
+.rp-form select:focus { border-color: #2a6cff; }
+.rp-review-form textarea { min-height: 60px; }
+
+/* Список отзывов */
+.rp-reviews { border-top: 1px solid rgba(0,0,0,0.07); padding-top: 12px; }
+
+.rp-review {
+    padding: 9px 10px;
+    background: rgba(0,0,0,0.03);
+    border-radius: 9px;
+    margin-bottom: 7px;
+}
+
+.rp-rv-top {
+    display: flex;
+    gap: 7px;
+    align-items: center;
+    margin-bottom: 3px;
+    flex-wrap: wrap;
+    font-size: 12px;
+}
+
+.rp-rv-stars { color: #f5a623; font-size: 11px; }
+.rp-rv-text { font-size: 12px; color: #444; margin-bottom: 3px; line-height: 1.5; }
+.rp-rv-date { font-size: 10px; color: #bbb; }
+
+/* ─── Профиль ────────────────────────────────────────────────────────────────── */
+.rp-profile { padding: 8px 14px 16px; }
+
+.rp-profile-name {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.rp-profile-email,
+.rp-profile-reg,
+.rp-profile-rank {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.rp-profile-rank { font-weight: 600; color: #444; }
+
+.rp-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 14px 0;
+}
+
+.rp-stat-item {
+    background: rgba(42,108,255,0.06);
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+}
+
+.rp-stat-value {
+    display: block;
+    font-size: 22px;
+    font-weight: 700;
+    color: #2a6cff;
+    line-height: 1.1;
+}
+
+.rp-stat-label {
+    display: block;
+    font-size: 10px;
+    color: #888;
+    margin-top: 3px;
+    line-height: 1.3;
+}
+
+.rp-pw-form {
+    border-top: 1px solid rgba(0,0,0,0.07);
+    padding-top: 14px;
+}
+
+.rp-pw-form input {
+    display: block;
+    width: 100%;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 8px;
+    padding: 7px 9px;
+    font-size: 12px;
+    font-family: inherit;
+    margin-bottom: 7px;
+    outline: none;
+    background: rgba(255,255,255,0.8);
+}
+.rp-pw-form input:focus { border-color: #2a6cff; }
+
+.rp-pw-ok {
+    font-size: 12px;
+    color: #2a9d2a;
+    background: rgba(42,157,42,0.08);
+    border-radius: 7px;
+    padding: 6px 9px;
+    margin-bottom: 7px;
+}
+
+/* ─── Форма загрузки ─────────────────────────────────────────────────────────── */
+.rp-form { padding: 4px 14px 16px; }
+
+.rp-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+.rp-form-row select { margin-bottom: 7px; }
+
+.rp-file-label {
+    display: block;
+    border: 1.5px dashed rgba(0,0,0,0.15);
+    border-radius: 8px;
+    padding: 11px;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 7px;
+    color: #777;
+    font-size: 12px;
+    transition: border-color 0.2s, color 0.2s;
+}
+.rp-file-label:hover { border-color: #2a6cff; color: #2a6cff; }
+.rp-file-label input { display: none; }
+
+.rp-error {
+    font-size: 12px;
+    color: #d00;
+    background: #fff0f0;
+    border-radius: 7px;
+    padding: 6px 9px;
+    margin-bottom: 7px;
+}
+
+/* ─── Кнопки ─────────────────────────────────────────────────────────────────── */
+.rp-btn-primary {
+    width: 100%;
+    padding: 9px;
+    background: #2a6cff;
+    color: white;
+    border: none;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+}
+.rp-btn-primary:hover { background: #1a5cef; }
+.rp-btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+.rp-btn-secondary {
+    width: 100%;
+    padding: 9px;
+    background: rgba(0,0,0,0.06);
+    color: #333;
+    border: none;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+}
+.rp-btn-secondary:hover { background: rgba(0,0,0,0.1); }
+
+.hidden { display: none !important; }
+
+.rp-track-tooltip {
+    background: rgba(0,0,0,0.75);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 9px;
+    font-size: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+.rp-track-tooltip::before { display: none; }
+
+/* ─── Мобильная адаптация ────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    #routes-panel {
+        top: auto;
+        right: 0;
+        bottom: -55vh;
+        width: 100%;
+        height: 55vh;
+        border-left: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.6);
+        border-radius: 18px 18px 0 0;
+        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+        transition: bottom 0.28s ease;
+    }
+
+    #routes-panel.open {
+        right: 0;
+        bottom: 0;
+    }
+
+    /* Ручка для свайпа */
+    #rp-header::before {
+        content: '';
+        display: block;
+        width: 36px;
+        height: 4px;
+        background: rgba(0, 0, 0, 0.12);
+        border-radius: 2px;
+        margin: 0 auto 10px;
+    }
+}

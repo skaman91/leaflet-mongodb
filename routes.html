@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Маршруты — Liteoffroad</title>
+  <link rel="stylesheet" href="css/leaflet.css">
+  <link rel="stylesheet" href="css/routes.css">
+</head>
+<body>
+
+  <div id="sidebar">
+    <div id="sidebar-top">
+      <a href="/" class="back-link">← Карта</a>
+      <div id="sidebar-title">Маршруты</div>
+      <div id="auth-area"></div>
+    </div>
+
+    <div id="filters">
+      <select id="filter-transport">
+        <option value="">Тип транспорта</option>
+        <option value="suv">🚙 Внедорожник</option>
+        <option value="car">🚗 Легковой</option>
+        <option value="atv">🏍 Квадроцикл</option>
+        <option value="snowmobile">🛷 Снегоход</option>
+      </select>
+      <select id="filter-difficulty">
+        <option value="">Любая сложность</option>
+        <option value="1">★ Лёгкий</option>
+        <option value="2">★★ Несложный</option>
+        <option value="3">★★★ Средний</option>
+        <option value="4">★★★★ Сложный</option>
+        <option value="5">★★★★★ Экстрим</option>
+      </select>
+      <select id="filter-season">
+        <option value="">Любой сезон</option>
+        <option value="summer">☀️ Лето</option>
+        <option value="winter">❄️ Зима</option>
+        <option value="all">🔄 Всесезон</option>
+      </select>
+    </div>
+
+    <div id="route-list"><div class="list-loading">Загружаю маршруты…</div></div>
+
+    <button id="upload-btn" class="upload-btn hidden">+ Добавить маршрут</button>
+  </div>
+
+  <div id="map"></div>
+
+  <!-- Панель детального просмотра -->
+  <div id="detail-panel" class="hidden">
+    <div id="detail-content"></div>
+  </div>
+
+  <!-- Модальное окно загрузки -->
+  <div id="upload-overlay" class="hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>Новый маршрут</h2>
+        <button id="modal-close">✕</button>
+      </div>
+      <input type="text" id="up-title" placeholder="Название маршрута *">
+      <textarea id="up-desc" placeholder="Описание маршрута"></textarea>
+      <div class="form-row">
+        <select id="up-transport">
+          <option value="suv">🚙 Внедорожник</option>
+          <option value="car">🚗 Легковой</option>
+          <option value="atv">🏍 Квадроцикл</option>
+          <option value="snowmobile">🛷 Снегоход</option>
+        </select>
+        <select id="up-difficulty">
+          <option value="1">★ Лёгкий</option>
+          <option value="2">★★ Несложный</option>
+          <option value="3">★★★ Средний</option>
+          <option value="4">★★★★ Сложный</option>
+          <option value="5">★★★★★ Экстрим</option>
+        </select>
+        <select id="up-season">
+          <option value="all">🔄 Всесезон</option>
+          <option value="summer">☀️ Лето</option>
+          <option value="winter">❄️ Зима</option>
+        </select>
+      </div>
+      <label class="file-label">
+        <input type="file" id="up-gpx" accept=".gpx">
+        <span id="file-name">📎 Выберите GPX файл</span>
+      </label>
+      <div id="up-error" class="form-error hidden"></div>
+      <div class="modal-actions">
+        <button id="up-cancel" class="btn-secondary">Отмена</button>
+        <button id="up-submit" class="btn-primary">Загрузить</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/leaflet.js"></script>
+  <script src="js/gpx.min.js"></script>
+  <script type="module" src="js/routes.js"></script>
+</body>
+</html>

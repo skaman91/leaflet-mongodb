@@ -8,6 +8,7 @@ if (window.Capacitor?.isNativePlatform?.()) {
 }
 
 const map = L.map('map', { preferCanvas: true }).setView([60.024828, 30.338195], 9)
+window.mapInstance = map
 document.getElementById('msg').innerHTML = 'Загружаю точки...'
 let historyMarkers = []
 let archivePoints = []
@@ -956,7 +957,7 @@ ${point.channelLink ? `
     <div id="noInstall">На руках: <span id="noInstall-count">${noInstall}</span></div>
   </div>
 `
-    document.body.appendChild(infoDiv)
+    document.getElementById('map-controls-right').appendChild(infoDiv)
 
     // свернуть / развернуть панель
     document.getElementById('layers-header').addEventListener('click', () => {

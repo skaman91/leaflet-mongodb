@@ -146,17 +146,53 @@
         margin-top: 0.7em;
     }
 
-    #points-info {
+    #map-controls-right {
         position: absolute;
         bottom: 20px;
         right: 10px;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: stretch;
+    }
+
+    #routes-toggle-btn {
         background: rgba(255, 255, 255, 0.55);
         backdrop-filter: blur(10px) saturate(1.3);
         -webkit-backdrop-filter: blur(10px) saturate(1.3);
         border: 1px solid rgba(255, 255, 255, 0.65);
         border-radius: 10px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-        z-index: 10000;
+        width: 152px;
+        padding: 6px 10px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        color: rgba(0, 0, 0, 0.55);
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: left;
+
+        @media screen and (max-width: 710px) {
+            width: 136px;
+            font-size: 10px;
+        }
+    }
+    #routes-toggle-btn:hover { background: rgba(255, 255, 255, 0.75); }
+    #routes-toggle-btn.active { color: rgba(0, 0, 0, 0.8); }
+
+    #points-info {
+        background: rgba(255, 255, 255, 0.55);
+        backdrop-filter: blur(10px) saturate(1.3);
+        -webkit-backdrop-filter: blur(10px) saturate(1.3);
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         width: 152px;
         font-size: 12px;
         overflow: hidden;
@@ -321,13 +357,13 @@
         cursor: pointer;
 
         @media screen and (max-width: 710px) {
-            bottom: 19em;
-            left: 87%;
-            width: 9em;
-            height: 2em;
+            /*bottom: 19em;*/
+            /*left: 87%;*/
+            /*width: 9em;*/
+            /*height: 2em;*/
             font-size: 8px;
-            display: flex;
-            align-items: center;
+            /*display: flex;*/
+            /*align-items: center;*/
         }
     }
 
