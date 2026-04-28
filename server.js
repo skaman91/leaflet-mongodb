@@ -440,10 +440,11 @@ app.get('/auth/profile', authRequired, async (req, res) => {
     let user = null
     try { user = await usersCollection.findOne({ _id: new ObjectId(chatId) }, { projection: { password: 0 } }) } catch {}
 
-    const [uploadedCount, riddenCount, downloadedCount] = await Promise.all([
+    const [uploadedCount, riddenCount, downloadedCount, commentCount] = await Promise.all([
       routesCollection.countDocuments({ 'author.chatId': chatId }),
       routesCollection.countDocuments({ 'riddenUsers.chatId': chatId }),
-      downloadsCollection.countDocuments({ chatId })
+      downloadsCollection.countDocuments({ chatId }),
+      reviewsCollection.countDocuments({ 'author.chatId': chatId })
     ])
 
     res.json({
@@ -454,7 +455,8 @@ app.get('/auth/profile', authRequired, async (req, res) => {
       hasPassword: !!user?.password,
       uploadedCount,
       riddenCount,
-      downloadedCount
+      downloadedCount,
+      commentCount
     })
   } catch (err) {
     console.error(err)

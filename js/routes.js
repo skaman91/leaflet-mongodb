@@ -549,7 +549,7 @@ waitForMap(map => {
           <div class="rp-profile-name">${data.name}</div>
           ${data.email ? `<div class="rp-profile-email">📧 ${data.email}</div>` : ''}
           ${regDate ? `<div class="rp-profile-reg">📅 Зарегистрирован: ${regDate}</div>` : ''}
-          ${data.rank ? `<div class="rp-profile-rank">🏆 ${data.rank}</div>` : ''}
+          <div class="rp-profile-rank">🏆 ${data.rank || '—'}</div>
 
           <div class="rp-stats">
             <div class="rp-stat-item">
@@ -563,6 +563,10 @@ waitForMap(map => {
             <div class="rp-stat-item">
               <span class="rp-stat-value">${data.downloadedCount}</span>
               <span class="rp-stat-label">скачал треков</span>
+            </div>
+            <div class="rp-stat-item" style="grid-column: 1 / -1">
+              <span class="rp-stat-value">${data.commentCount ?? 0}</span>
+              <span class="rp-stat-label">написал комментариев</span>
             </div>
           </div>
 
