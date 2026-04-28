@@ -147,7 +147,7 @@
     }
 
     #map-controls-right {
-        position: absolute;
+        position: fixed;
         bottom: 20px;
         right: 10px;
         z-index: 10000;
@@ -719,4 +719,33 @@
             width: 18px;
             height: 18px;
         }
+    }
+
+    /* ============================= */
+    /* CAPACITOR — SAFE AREA         */
+    /* ============================= */
+
+    body.capacitor-app #map-controls-right {
+        bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    }
+
+    body.capacitor-app .coord-display {
+        bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    }
+
+    body.capacitor-app #bg-text {
+        top: env(safe-area-inset-top, 0px);
+    }
+
+    /* Кнопки Leaflet в левом нижнем углу */
+    body.capacitor-app .leaflet-bottom {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    body.capacitor-app .leaflet-top {
+        padding-top: env(safe-area-inset-top, 0px);
+    }
+
+    /* Скрываем кнопку истории в мобильном приложении — слишком много точек */
+    body.capacitor-app #showButton {
+        display: none !important;
     }

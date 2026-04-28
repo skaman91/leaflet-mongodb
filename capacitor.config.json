@@ -1,5 +1,14 @@
 {
   "appId": "com.pointmap.app",
   "appName": "Point Map",
-  "webDir": "www"
+  "webDir": "www",
+  "server": {
+    "url": "https://point-map.ru",
+    "cleartext": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
 }

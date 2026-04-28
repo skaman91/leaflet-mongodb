@@ -360,6 +360,20 @@
 
 .rp-detail-author { font-size: 12px; color: #888; margin-bottom: 8px; }
 
+.rp-user-link {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: inherit;
+    font-family: inherit;
+    font-weight: 600;
+    color: #2a6cff;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.rp-user-link:hover { color: #1a5cef; }
+
 .rp-detail-desc {
     font-size: 12px;
     color: #444;
@@ -432,22 +446,6 @@
     margin-bottom: 8px;
 }
 
-.rp-stars {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 8px;
-}
-
-.rp-star {
-    font-size: 22px;
-    cursor: pointer;
-    color: #ddd;
-    user-select: none;
-    transition: color 0.1s;
-}
-.rp-star.active, .rp-star:hover { color: #f5a623; }
-
-.rp-review-form select,
 .rp-review-form textarea,
 .rp-form input[type="text"],
 .rp-form textarea,
@@ -482,16 +480,26 @@
 
 .rp-rv-top {
     display: flex;
-    gap: 7px;
+    justify-content: space-between;
     align-items: center;
     margin-bottom: 3px;
-    flex-wrap: wrap;
     font-size: 12px;
 }
 
-.rp-rv-stars { color: #f5a623; font-size: 11px; }
-.rp-rv-text { font-size: 12px; color: #444; margin-bottom: 3px; line-height: 1.5; }
+.rp-rv-text { font-size: 12px; color: #444; margin-bottom: 2px; line-height: 1.5; }
 .rp-rv-date { font-size: 10px; color: #bbb; }
+
+.rp-rv-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    color: #ccc;
+    padding: 0 2px;
+    line-height: 1;
+    transition: color 0.15s;
+}
+.rp-rv-delete:hover { color: #cc2200; }
 
 /* ─── Профиль ────────────────────────────────────────────────────────────────── */
 .rp-profile { padding: 8px 14px 16px; }
@@ -650,6 +658,16 @@
 }
 .rp-track-tooltip::before { display: none; }
 
+/* Capacitor: боковая панель на планшете/широком экране */
+@media (min-width: 641px) {
+    body.capacitor-app #rp-header {
+        padding-top: calc(12px + env(safe-area-inset-top, 0px));
+    }
+    body.capacitor-app #rp-footer {
+        padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
 /* ─── Мобильная адаптация ────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
     #routes-panel {
@@ -668,6 +686,15 @@
     #routes-panel.open {
         right: 0;
         bottom: 0;
+    }
+
+    /* Capacitor: отступ снизу под навигационную панель */
+    body.capacitor-app #routes-panel.open {
+        bottom: env(safe-area-inset-bottom, 0px);
+    }
+    body.capacitor-app #routes-panel {
+        bottom: calc(-55vh + env(safe-area-inset-bottom, 0px));
+        height: calc(55vh - env(safe-area-inset-bottom, 0px));
     }
 
     /* Ручка для свайпа */

@@ -35,7 +35,16 @@
 <link   rel="stylesheet" href="css/L.Control.Locate.min.css" />
 <link   rel="stylesheet" href="css/leaflet-ruler.css"/>
 
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(reg => console.log('SW scope:', reg.scope))
+      .catch(err => console.warn('SW error:', err))
+  }
+</script>
 <script src="js/leaflet.js"></script>
+<script src="js/idb.min.js"></script>
+<script src="js/leaflet.offline.js"></script>
 <script src="js/svg-icon.js?v=1776964004"></script>
 <script type="module" src="js/main.js?v=1776964004"></script>
 <script type="module" src="js/routes.js"></script>

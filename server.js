@@ -512,6 +512,33 @@ app.post('/auth/unban/:userId', authRequired, async (req, res) => {
   }
 })
 
+// ─── Публичный профиль пользователя ──────────────────────────────────────────
+app.get('/users/:chatId', async (req, res) => {
+  try {
+    const chatId = req.params.chatId
+    let user = null
+    try { user = await usersCollection.findOne({ _id: new ObjectId(chatId) }, { projection: { password: 0, email: 0 } }) } catch {}
+
+    const [uploadedCount, riddenCount, downloadedCount, commentCount] = await Promise.all([
+      routesCollection.countDocuments({ 'author.chatId': chatId }),
+      routesCollection.countDocuments({ 'riddenUsers.chatId': chatId }),
+      downloadsCollection.countDocuments({ chatId }),
+      reviewsCollection.countDocuments({ 'author.chatId': chatId })
+    ])
+
+    res.json({
+      name: user?.displayName || chatId,
+      rank: user?.rank || null,
+      uploadedCount,
+      riddenCount,
+      downloadedCount,
+      commentCount
+    })
+  } catch (err) {
+    res.status(500).json({ error: 'Ошибка' })
+  }
+})
+
 // ─── Маршруты ─────────────────────────────────────────────────────────────────
 app.get('/routes', async (req, res) => {
   try {
@@ -655,24 +682,38 @@ app.delete('/routes/:id', authRequired, async (req, res) => {
   }
 })
 
-// Отзыв и оценка маршрута
+// Комментарий к маршруту
 app.post('/routes/:id/review', authRequired, async (req, res) => {
   try {
     const routeId = new ObjectId(req.params.id)
-    const { rating, text, condition } = req.body
+    const { text } = req.body
+    if (!text?.trim()) return res.status(400).json({ error: 'Комментарий не может быть пустым' })
     await reviewsCollection.insertOne({
       routeId,
       author: { chatId: req.user.chatId, name: req.user.name },
-      rating: Math.min(5, Math.max(1, parseInt(rating) || 5)),
-      text: text?.trim() || '',
-      condition: condition || null,
+      text: text.trim(),
       createdAt: new Date()
     })
-    const all = await reviewsCollection.find({ routeId }).toArray()
-    const avg = Math.round(all.reduce((s, r) => s + r.rating, 0) / all.length * 10) / 10
-    await routesCollection.updateOne({ _id: routeId }, {
-      $set: { avgRating: avg, reviewCount: all.length }
-    })
+    const count = await reviewsCollection.countDocuments({ routeId })
+    await routesCollection.updateOne({ _id: routeId }, { $set: { reviewCount: count } })
+    res.json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ error: 'Ошибка' })
+  }
+})
+
+// Удалить комментарий (автор комментария или admin)
+app.delete('/routes/:id/review/:reviewId', authRequired, async (req, res) => {
+  try {
+    const reviewId = new ObjectId(req.params.reviewId)
+    const review = await reviewsCollection.findOne({ _id: reviewId })
+    if (!review) return res.status(404).json({ error: 'Комментарий не найден' })
+    if (String(review.author.chatId) !== String(req.user.chatId) && req.user.role !== 'admin')
+      return res.status(403).json({ error: 'Нет прав' })
+
+    await reviewsCollection.deleteOne({ _id: reviewId })
+    const count = await reviewsCollection.countDocuments({ routeId: new ObjectId(req.params.id) })
+    await routesCollection.updateOne({ _id: new ObjectId(req.params.id) }, { $set: { reviewCount: count } })
     res.json({ ok: true })
   } catch (err) {
     res.status(500).json({ error: 'Ошибка' })

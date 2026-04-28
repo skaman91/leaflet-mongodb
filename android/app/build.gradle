@@ -42,6 +42,12 @@ dependencies {
     implementation project(':capacitor-cordova-android-plugins')
 }
 
+android.applicationVariants.all { variant ->
+    variant.outputs.all { output ->
+        outputFileName = "Points.apk"
+    }
+}
+
 apply from: 'capacitor.build.gradle'
 
 try {

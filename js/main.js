@@ -3,7 +3,7 @@ import { RADIUS } from './const.js'
 // Проверяем, что это Capacitor (Android-приложение)
 if (window.Capacitor?.isNativePlatform?.()) {
   const { StatusBar } = window.Capacitor.Plugins;
-  StatusBar.setOverlaysWebView({ overlay: false });
+  StatusBar.setOverlaysWebView({ overlay: true });
   document.body.classList.add("capacitor-app");
 }
 
@@ -40,10 +40,35 @@ const StartButton = L.Control.extend({
 
 map.addControl(new StartButton())
 
-// OSM — базовый слой
-const OSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+// OSM — базовый слой с кешированием в IndexedDB
+const OSM = L.tileLayer.offline('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   opacity: 1
 }).addTo(map)
+
+// Автокеширование: при загрузке тайла сохраняем его в IndexedDB
+OSM.on('tileload', async function (e) {
+  const z = e.coords.z
+  if (z < 8 || z > 16) return  // не кешируем слишком общие и слишком детальные уровни
+
+  const key = this._getStorageKey(e.coords)
+  const url = this.getTileUrl(e.coords)
+
+  try {
+    if (await LeafletOffline.hasTile(key)) return  // уже есть — пропускаем
+
+    // fetch() берёт тайл из HTTP-кеша браузера (уже загружен <img>) — сети нет
+    const blob = await LeafletOffline.downloadTile(url)
+    await LeafletOffline.saveTile({
+      key,
+      url,
+      z,
+      x: e.coords.x,
+      y: e.coords.y,
+      urlTemplate: this._url,
+      createdAt: Date.now()
+    }, blob)
+  } catch { /* нет сети или IDB недоступен — игнорируем */ }
+})
 
 // Google — overlay с opacity
 const googleSat = L.tileLayer(

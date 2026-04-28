@@ -282,7 +282,7 @@ waitForMap(map => {
           ${condBadge(r.lastCondition)}
           <span>🏁 ${r.riddenCount}</span>
           ${r.downloadCount ? `<span>⬇ ${r.downloadCount}</span>` : ''}
-          ${r.avgRating ? `<span>⭐ ${r.avgRating}</span>` : ''}
+          ${r.reviewCount ? `<span>💬 ${r.reviewCount}</span>` : ''}
           <span class="rp-author">${r.author.name}</span>
         </div>
       </div>`
@@ -329,13 +329,12 @@ waitForMap(map => {
           <span class="rp-diff-pill" style="background:${diffColor(route.difficulty)}">${diffLabel(route.difficulty)}</span>
           <span>${route.distance} км</span>
         </div>
-        <div class="rp-detail-author">Автор: <b>${route.author.name}</b></div>
+        <div class="rp-detail-author">Автор: <button class="rp-user-link" data-uid="${route.author.chatId}">${route.author.name}</button></div>
         ${route.description ? `<div class="rp-detail-desc">${route.description}</div>` : ''}
         <div class="rp-detail-stats">
           🏁 ${route.riddenCount} проехали
           ${route.downloadCount ? ` · ⬇ ${route.downloadCount} скачали` : ''}
-          ${route.avgRating ? ` · ⭐ ${route.avgRating} (${route.reviewCount})` : ''}
-          ${route.lastCondition ? `<br>${condBadge(route.lastCondition)} — ${route.lastCondition.authorName}` : ''}
+          ${route.reviewCount ? ` · 💬 ${route.reviewCount} коммент.` : ''}
         </div>
 
         ${route.riddenUsers?.length ? `
@@ -365,34 +364,28 @@ waitForMap(map => {
           </button>
         </div>
         <div class="rp-review-form">
-          <div class="rp-section-title">Отзыв</div>
-          <div class="rp-stars" id="rp-stars">
-            ${[1,2,3,4,5].map(i => `<span class="rp-star" data-v="${i}">★</span>`).join('')}
-          </div>
-          <select id="rv-condition">
-            <option value="">Состояние дороги</option>
-            <option value="dry">🟢 Сухо</option>
-            <option value="wet">🟡 Мокро</option>
-            <option value="mud">🟠 Грязь</option>
-            <option value="snow">🔵 Снег</option>
-            <option value="impassable">🔴 Непроходимо</option>
-          </select>
-          <textarea id="rv-text" placeholder="Комментарий"></textarea>
-          <button class="rp-btn-primary" id="btn-review">Отправить отзыв</button>
-        </div>` : `<div class="rp-auth-hint">Войдите чтобы скачать трек и оставить отзыв</div>`}
+          <div class="rp-section-title">Комментарий</div>
+          <textarea id="rv-text" placeholder="Напишите комментарий к маршруту…"></textarea>
+          <button class="rp-btn-primary" id="btn-review">Отправить</button>
+        </div>` : `<div class="rp-auth-hint">Войдите чтобы скачать трек и оставить комментарий</div>`}
 
-        <div class="rp-reviews">
-          <div class="rp-section-title">Отзывы ${route.reviewCount ? `(${route.reviewCount})` : ''}</div>
-          ${route.reviews?.length ? route.reviews.map(r => `
-            <div class="rp-review">
+        <div class="rp-reviews" id="rp-reviews-list">
+          ${route.reviews?.length ? `
+          <div class="rp-section-title">Комментарии (${route.reviews.length})</div>
+          ${route.reviews.map(r => {
+            const canDelete = token && (String(r.author.chatId) === String(chatId) || isAdmin())
+            return `
+            <div class="rp-review" data-review-id="${r._id}">
               <div class="rp-rv-top">
                 <b>${r.author.name}</b>
-                <span class="rp-rv-stars">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
-                ${r.condition ? condBadge({ status: r.condition }) : ''}
+                <div style="display:flex;gap:6px;align-items:center">
+                  <span class="rp-rv-date">${new Date(r.createdAt).toLocaleDateString('ru-RU')}</span>
+                  ${canDelete ? `<button class="rp-rv-delete" data-id="${r._id}" title="Удалить">✕</button>` : ''}
+                </div>
               </div>
               ${r.text ? `<div class="rp-rv-text">${r.text}</div>` : ''}
-              <div class="rp-rv-date">${new Date(r.createdAt).toLocaleDateString('ru-RU')}</div>
-            </div>`).join('') : '<div class="rp-empty-sm">Отзывов пока нет</div>'}
+            </div>`
+          }).join('')}` : ''}
         </div>
       </div>`
 
@@ -452,35 +445,84 @@ waitForMap(map => {
     // Проехал (только если ещё не нажимал)
     if (!alreadyRidden) {
       document.getElementById('btn-ridden').addEventListener('click', async () => {
-        const cond = document.getElementById('rv-condition')?.value || null
-        const res  = await fetch(`${API}/routes/${route._id}/ridden`, {
-          method: 'POST', headers: authHdr(), body: JSON.stringify({ condition: cond })
+        const res = await fetch(`${API}/routes/${route._id}/ridden`, {
+          method: 'POST', headers: authHdr(), body: JSON.stringify({})
         })
         if (res.ok) openRoute(route._id)
       })
     }
 
-    // Звёзды
-    let rating = 5
-    const stars = document.querySelectorAll('.rp-star')
-    const paintStars = v => stars.forEach((s, i) => s.classList.toggle('active', i < v))
-    paintStars(rating)
-    stars.forEach(s => s.addEventListener('click', () => { rating = +s.dataset.v; paintStars(rating) }))
+    // Клик на имя автора → публичный профиль
+    document.querySelector('.rp-user-link')?.addEventListener('click', e => {
+      showUserProfile(e.target.dataset.uid, e.target.textContent)
+    })
 
-    // Отзыв
+    // Удаление комментария
+    document.getElementById('rp-reviews-list')?.addEventListener('click', async e => {
+      const btn = e.target.closest('.rp-rv-delete')
+      if (!btn) return
+      const reviewId = btn.dataset.id
+      const res = await fetch(`${API}/routes/${route._id}/review/${reviewId}`, {
+        method: 'DELETE', headers: authHdr()
+      })
+      if (res.ok) openRoute(route._id)
+    })
+
+    // Комментарий
     document.getElementById('btn-review').addEventListener('click', async () => {
-      const btn = document.getElementById('btn-review')
+      const btn  = document.getElementById('btn-review')
+      const text = document.getElementById('rv-text').value.trim()
+      if (!text) return
       btn.disabled = true
+      btn.textContent = '…'
       await fetch(`${API}/routes/${route._id}/review`, {
         method: 'POST', headers: authHdr(),
-        body: JSON.stringify({
-          rating,
-          text: document.getElementById('rv-text').value,
-          condition: document.getElementById('rv-condition').value || null
-        })
+        body: JSON.stringify({ text })
       })
       openRoute(route._id)
     })
+  }
+
+  // ─── Публичный профиль другого пользователя ───────────────────────────────
+  async function showUserProfile(uid, name) {
+    setView('profile')
+    titleEl.textContent = name
+    content.innerHTML = '<div class="rp-loading">Загружаю…</div>'
+
+    try {
+      const res = await fetch(`${API}/users/${uid}`, {
+        headers: getToken() ? { Authorization: `Bearer ${getToken()}` } : {}
+      })
+      let data
+      try { data = await res.json() } catch { data = {} }
+
+      content.innerHTML = `
+        <div class="rp-profile">
+          <div class="rp-profile-name">${data.name || name}</div>
+          <div class="rp-profile-rank">🏆 ${data.rank || '—'}</div>
+
+          <div class="rp-stats">
+            <div class="rp-stat-item">
+              <span class="rp-stat-value">${data.uploadedCount ?? '—'}</span>
+              <span class="rp-stat-label">загружено треков</span>
+            </div>
+            <div class="rp-stat-item">
+              <span class="rp-stat-value">${data.riddenCount ?? '—'}</span>
+              <span class="rp-stat-label">проехал маршрутов</span>
+            </div>
+            <div class="rp-stat-item">
+              <span class="rp-stat-value">${data.downloadedCount ?? '—'}</span>
+              <span class="rp-stat-label">скачал треков</span>
+            </div>
+            <div class="rp-stat-item" style="grid-column: 1 / -1">
+              <span class="rp-stat-value">${data.commentCount ?? '—'}</span>
+              <span class="rp-stat-label">написал комментариев</span>
+            </div>
+          </div>
+        </div>`
+    } catch {
+      content.innerHTML = '<div class="rp-empty">Нет соединения</div>'
+    }
   }
 
   // ─── Профиль ───────────────────────────────────────────────────────────────
