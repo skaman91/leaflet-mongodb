@@ -451,7 +451,7 @@ app.get('/auth/profile', authRequired, async (req, res) => {
       name: user?.displayName || req.user.name,
       email: user?.email || null,
       createdAt: user?.createdAt || null,
-      rank: user?.rank || null,
+      rank: user?.role || null,
       hasPassword: !!user?.password,
       uploadedCount,
       riddenCount,

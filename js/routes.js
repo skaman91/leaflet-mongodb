@@ -25,6 +25,7 @@ waitForMap(map => {
   // ─── Состояние панели ──────────────────────────────────────────────────────
   let panelOpen = false
   let view = 'list'          // 'list' | 'upload' | 'detail'
+  let currentTab = 'routes'  // 'routes' | 'poi' | 'events' | 'rides'
   let routes = []
   let activeLayer = null
   let allLayers = []
@@ -40,6 +41,27 @@ waitForMap(map => {
   const footer  = document.getElementById('rp-footer')
   const backBtn = document.getElementById('rp-back')
   const titleEl = document.getElementById('rp-title')
+  const tabsEl  = document.getElementById('rp-tabs')
+
+  const TAB_LABELS = {
+    routes: 'Маршруты',
+    poi: 'Точки POI',
+    events: 'Соревнования',
+    rides: 'Покатушки'
+  }
+
+  // Переключение разделов
+  tabsEl.querySelectorAll('.rp-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentTab = btn.dataset.tab
+      tabsEl.querySelectorAll('.rp-tab-btn').forEach(b => b.classList.toggle('active', b === btn))
+      if (currentTab === 'routes') {
+        loadAndShowList()
+      } else {
+        showTabPlaceholder(currentTab)
+      }
+    })
+  })
 
   document.getElementById('rp-close').addEventListener('click', closePanel)
 
@@ -62,7 +84,9 @@ waitForMap(map => {
     if (arrow) arrow.textContent = '▴'
     document.getElementById('routes-toggle-btn')?.classList.add('active')
     updateAuthUI()
-    if (view === 'list') loadAndShowList()
+    if (view === 'list') {
+      currentTab === 'routes' ? loadAndShowList() : showTabPlaceholder(currentTab)
+    }
   }
 
   function closePanel() {
@@ -76,10 +100,13 @@ waitForMap(map => {
 
   function setView(v) {
     view = v
-    backBtn.classList.toggle('hidden', v === 'list')
+    const isList = v === 'list'
+    backBtn.classList.toggle('hidden', isList)
+    titleEl.classList.toggle('hidden', isList)    // заголовок только в подразделах
+    tabsEl.classList.toggle('hidden', !isList)    // табы только в корневом виде
     footer.innerHTML = ''
     if (v === 'list') {
-      titleEl.textContent = 'Маршруты'
+      titleEl.textContent = TAB_LABELS[currentTab] || 'Маршруты'
       if (getToken()) {
         footer.innerHTML = `<button class="rp-btn-primary" id="btn-open-upload">+ Загрузить маршрут</button>`
         document.getElementById('btn-open-upload').addEventListener('click', showUpload)
@@ -481,6 +508,37 @@ waitForMap(map => {
       })
       openRoute(route._id)
     })
+  }
+
+  // ─── Заглушки для новых разделов ──────────────────────────────────────────
+  function showTabPlaceholder(tab) {
+    setView('list')
+    const info = {
+      poi: {
+        icon: '📍',
+        title: 'Точки интереса',
+        text: 'Здесь будут точки интереса:\nкрасивые места, сложные броды,\nхорошие стоянки и многое другое.'
+      },
+      events: {
+        icon: '🏁',
+        title: 'Соревнования',
+        text: 'Анонсы и результаты\nклубных соревнований.'
+      },
+      rides: {
+        icon: '🚙',
+        title: 'Покатушки',
+        text: 'Планируемые совместные\nвыезды и покатушки.'
+      }
+    }[tab]
+    if (!info) return
+    footer.innerHTML = ''
+    content.innerHTML = `
+      <div class="rp-coming-soon">
+        <div class="rp-coming-icon">${info.icon}</div>
+        <div class="rp-coming-title">${info.title}</div>
+        <div class="rp-coming-text">${info.text}</div>
+        <div class="rp-coming-text" style="margin-top:8px;font-size:11px;color:#ccc">В разработке</div>
+      </div>`
   }
 
   // ─── Публичный профиль другого пользователя ───────────────────────────────

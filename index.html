@@ -24,7 +24,13 @@
 <div id="routes-panel">
     <div id="rp-header">
         <button id="rp-back" class="rp-back hidden">←</button>
-        <span id="rp-title">Маршруты</span>
+        <span id="rp-title" class="hidden"></span>
+        <div id="rp-tabs">
+            <button class="rp-tab-btn active" data-tab="routes">🗺 Маршруты</button>
+            <button class="rp-tab-btn" data-tab="poi">📍 POI</button>
+            <button class="rp-tab-btn" data-tab="events">🏁 Соревнования</button>
+            <button class="rp-tab-btn" data-tab="rides">🚙 Покатушки</button>
+        </div>
         <button id="rp-close">✕</button>
     </div>
     <div id="rp-auth"></div>

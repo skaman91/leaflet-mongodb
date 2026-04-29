@@ -945,7 +945,7 @@ ${point.channelLink ? `
     const infoDiv = document.createElement('div')
     infoDiv.id = 'points-info'
     infoDiv.innerHTML = `
-  <div id="layers-header">Слои <span id="layers-arrow">▾</span></div>
+  <div id="layers-header">Игра "Точки" <span id="layers-arrow">▾</span></div>
   <div id="layers-body">
     <label class="layer-row">
       <input type="checkbox" id="toggle-gpx" checked>
