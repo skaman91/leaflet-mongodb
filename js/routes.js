@@ -84,13 +84,13 @@ waitForMap(map => {
     panelOpen ? closePanel() : openPanel()
   }
 
-  function openPanel() {
+  function openPanel(hint) {
     panelOpen = true
     panel.classList.add('open')
     const arrow = document.getElementById('routes-btn-arrow')
     if (arrow) arrow.textContent = '▴'
     document.getElementById('routes-toggle-btn')?.classList.add('active')
-    updateAuthUI()
+    updateAuthUI(hint)
     if (view === 'list') {
       currentTab === 'routes' ? loadAndShowList() : showTabPlaceholder(currentTab)
     }
@@ -132,7 +132,7 @@ waitForMap(map => {
   }
 
   // ─── Auth UI ───────────────────────────────────────────────────────────────
-  function updateAuthUI() {
+  function updateAuthUI(hint) {
     const authEl = document.getElementById('rp-auth')
     if (getToken()) {
       authEl.innerHTML = `
@@ -153,6 +153,7 @@ waitForMap(map => {
       updateRecordBtn()
     } else {
       authEl.innerHTML = `
+        ${hint ? `<div class="rp-auth-hint-msg">${hint}</div>` : ''}
         <div class="rp-auth-tabs">
           <button class="rp-tab active" data-tab="login">Войти</button>
           <button class="rp-tab" data-tab="register">Регистрация</button>
@@ -961,23 +962,59 @@ waitForMap(map => {
 
   function initRecordBtn() {
     if (document.getElementById('btn-record')) return
-    const controls = document.getElementById('map-controls-right')
-    if (!controls) return
-    const btn = document.createElement('button')
-    btn.id = 'btn-record'
-    btn.className = 'btn-record'
-    controls.insertBefore(btn, controls.firstChild)
-    btn.addEventListener('click', () => recording ? stopRecording() : startRecording())
+    const RecordControl = L.Control.extend({
+      options: { position: 'topleft' },
+      onAdd: function () {
+        const btn = L.DomUtil.create('div', 'leaflet-control-record')
+        btn.id = 'btn-record'
+        L.DomEvent.on(btn, 'click', function (e) {
+          L.DomEvent.stopPropagation(e)
+          if (recording) { stopRecording(); return }
+          if (!getToken()) { openPanel('⏺ Для записи трека необходимо войти в аккаунт'); return }
+          const geoActive = !!document.querySelector('.leaflet-control-locate.active')
+          if (!geoActive) { showGeoNeededModal(); return }
+          startRecording()
+        })
+        return btn
+      }
+    })
+    map.addControl(new RecordControl())
     updateRecordBtn()
   }
 
   function updateRecordBtn() {
     const btn = document.getElementById('btn-record')
     if (!btn) return
-    btn.style.display = getToken() ? '' : 'none'
     btn.classList.toggle('recording', recording)
-    const dist = recording && recordedPoints.length > 1 ? ` · ${calcRecordedDistance()} км` : ''
-    btn.textContent = recording ? `⏹ Стоп${dist}` : '⏺ Запись трека'
+    if (recording) {
+      const dist = recordedPoints.length > 1 ? calcRecordedDistance() + ' км' : ''
+      btn.innerHTML = `<span class="rec-icon rec-stop">■</span><span class="rec-label">STOP${dist ? '<br><small>' + dist + '</small>' : ''}</span>`
+    } else {
+      btn.innerHTML = `<span class="rec-icon">▶</span><span class="rec-label">REC</span>`
+    }
+  }
+
+  function showGeoNeededModal() {
+    document.getElementById('geo-needed-modal')?.remove()
+    const el = document.createElement('div')
+    el.id = 'geo-needed-modal'
+    el.innerHTML = `
+      <div class="geo-needed-box">
+        <div class="geo-needed-title">📍 Нужна геолокация</div>
+        <div class="geo-needed-text">Для записи трека включите геолокацию</div>
+        <div class="geo-needed-btns">
+          <button id="geo-needed-enable">Включить</button>
+          <button id="geo-needed-cancel">Отмена</button>
+        </div>
+      </div>
+    `
+    document.body.appendChild(el)
+    el.addEventListener('click', e => { if (e.target === el) el.remove() })
+    document.getElementById('geo-needed-enable').addEventListener('click', () => {
+      el.remove()
+      window.locateControl?.start()
+    })
+    document.getElementById('geo-needed-cancel').addEventListener('click', () => el.remove())
   }
 
   function startRecording() {

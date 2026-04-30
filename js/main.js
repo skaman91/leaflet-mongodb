@@ -118,36 +118,122 @@ sliderContainer.addEventListener('pointerleave', stopDrag)
 
 // L.control.layers(baseLayers).addTo(map)
 
+
 const locateControl = L.control.locate({
-  position: 'topleft', // Расположение кнопки на карте
+  position: 'topleft',
   flyTo: true,
   keepCurrentZoomLevel: true,
-  setView: true,        // Автоматическое центрирование карты
-  drawCircle: true,     // Отображение ореола точности
-  follow: true,         // Автоматическое слежение за пользователем
-  locateOptions: {      // Опции геолокации
-    enableHighAccuracy: true, // Максимальная точность
-    watch: true,             // Включает слежение
-    maximumAge: 0            // Минимальная задержка обновления
+  setView: true,
+  drawCircle: true,
+  follow: true,
+  locateOptions: {
+    enableHighAccuracy: true,
+    watch: true,
+    maximumAge: 0
   }
 }).addTo(map)
+window.locateControl = locateControl
 
-async function startLocate() {
-  // если это мобильное приложение (Capacitor)
-  if (window.Capacitor) {
-    try {
-      const { Geolocation } = await import('@capacitor/geolocation');
-      await Geolocation.requestPermissions();
-    } catch (e) {
-      console.error('Не удалось получить разрешение геолокации', e);
-    }
+// Когда геолокация успешно получена — запоминаем в localStorage
+map.on('locationfound', function () {
+  localStorage.setItem('geo_granted', '1')
+})
+
+// Когда пользователь вручную выключает геолокацию — сбрасываем флаг
+map.on('locatedeactivate', function () {
+  localStorage.removeItem('geo_granted')
+})
+
+// Ошибка геолокации — сбрасываем флаг и показываем подсказку
+map.on('locationerror', function (e) {
+  if (e.code === 1) {
+    localStorage.removeItem('geo_granted')
+    showGeoDenied()
   }
+})
 
-  // запускаем стандартный Leaflet locate
-  locateControl.start();
+function showGeoBanner() {
+  if (document.getElementById('geo-banner')) return
+  const el = document.createElement('div')
+  el.id = 'geo-banner'
+  el.innerHTML = `
+    <div class="geo-banner-top">
+      <span class="geo-banner-text">📍 Разрешите геолокацию, чтобы видеть себя на карте. Геолокация никуда не отправляется и видна только вам.</span>
+      <button id="geo-banner-close">✕</button>
+    </div>
+    <div class="geo-banner-actions">
+      <button id="geo-allow-btn">Разрешить</button>
+    </div>
+  `
+  document.body.appendChild(el)
+  document.getElementById('geo-allow-btn').addEventListener('click', () => {
+    el.remove()
+    locateControl.start()
+  })
+  document.getElementById('geo-banner-close').addEventListener('click', () => el.remove())
 }
 
-map.whenReady(startLocate);
+function showGeoDenied() {
+  if (document.getElementById('geo-banner')) return
+  const el = document.createElement('div')
+  el.id = 'geo-banner'
+  el.className = 'geo-banner-denied'
+  el.innerHTML = `
+    <div class="geo-banner-top">
+      <span class="geo-banner-text">⚠️ Геолокация заблокирована. Нажмите на 🔒 в адресной строке → <b>Местоположение</b> → <b>Разрешить</b>, затем обновите страницу.</span>
+      <button id="geo-banner-close">✕</button>
+    </div>
+  `
+  document.body.appendChild(el)
+  document.getElementById('geo-banner-close').addEventListener('click', () => el.remove())
+}
+
+async function initGeolocation() {
+  // Capacitor (Android) — нативная система разрешений
+  if (window.Capacitor) {
+    try {
+      const { Geolocation } = await import('@capacitor/geolocation')
+      const status = await Geolocation.requestPermissions()
+      if (status.location === 'granted' || status.location === 'limited') {
+        locateControl.start()
+      }
+    } catch (e) {
+      console.error('Геолокация Capacitor:', e)
+    }
+    return
+  }
+
+  // Если ранее успешно получали геолокацию — авто-старт (надёжно работает в Safari iOS)
+  if (localStorage.getItem('geo_granted') === '1') {
+    locateControl.start()
+    return
+  }
+
+  // Проверяем через Permissions API (Chrome, Firefox; Safari возвращает 'prompt' ненадёжно)
+  if (navigator.permissions) {
+    try {
+      const perm = await navigator.permissions.query({ name: 'geolocation' })
+      if (perm.state === 'granted') {
+        locateControl.start()
+        return
+      }
+      if (perm.state === 'denied') {
+        showGeoDenied()
+        return
+      }
+      // Следим за изменением пока страница открыта
+      perm.addEventListener('change', function () {
+        document.getElementById('geo-banner')?.remove()
+        if (this.state === 'granted') locateControl.start()
+        else if (this.state === 'denied') showGeoDenied()
+      })
+    } catch (e) { /* Permissions API недоступен */ }
+  }
+
+  showGeoBanner()
+}
+
+map.whenReady(initGeolocation)
 
 // Храним всё по chatId
 const userMarkers = new Map()
@@ -949,7 +1035,15 @@ ${point.channelLink ? `
     <button class="glass-button" id="clearButton" style="display:none">Очистить историю точки</button>
   </div>
 `
-    document.getElementById('map-controls-right').appendChild(infoDiv)
+    const controlsRight = document.getElementById('map-controls-right')
+    controlsRight.appendChild(infoDiv)
+
+    const logoImg = document.createElement('img')
+    logoImg.src = '/img/liteoffroad.png'
+    logoImg.alt = ''
+    logoImg.className = 'map-logo'
+    logoImg.onerror = function () { this.style.display = 'none' }
+    controlsRight.appendChild(logoImg)
 
     document.getElementById('showButton').addEventListener('click', getHistoryPoints)
     clearButton = document.getElementById('clearButton')
