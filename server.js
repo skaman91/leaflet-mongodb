@@ -541,10 +541,24 @@ app.get('/users/:chatId', async (req, res) => {
   }
 })
 
+// ─── Мои треки (включая приватные) ───────────────────────────────────────────
+app.get('/my-tracks', authRequired, async (req, res) => {
+  try {
+    const tracks = await routesCollection
+      .find({ 'author.chatId': req.user.chatId }, { projection: { gpxFile: 0 } })
+      .sort({ createdAt: -1 })
+      .toArray()
+    res.json(tracks)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Database error' })
+  }
+})
+
 // ─── Маршруты ─────────────────────────────────────────────────────────────────
 app.get('/routes', async (req, res) => {
   try {
-    const filter = {}
+    const filter = { isPublic: { $ne: false } }
     if (req.query.transport) filter.transport = req.query.transport
     if (req.query.difficulty) filter.difficulty = parseInt(req.query.difficulty)
     if (req.query.season && req.query.season !== 'all') filter.season = { $in: [req.query.season, 'all'] }
@@ -567,20 +581,40 @@ app.get('/routes/:id', async (req, res) => {
       reviewsCollection.find({ routeId: id }).sort({ createdAt: -1 }).toArray()
     ])
     if (!route) return res.status(404).json({ error: 'Маршрут не найден' })
+    if (route.isPublic === false) {
+      const auth = req.headers.authorization
+      let chatId = null
+      if (auth?.startsWith('Bearer ')) {
+        try { chatId = jwt.verify(auth.slice(7), JWT_SECRET).chatId } catch {}
+      }
+      if (!chatId || String(chatId) !== String(route.author.chatId)) {
+        return res.status(403).json({ error: 'Нет доступа' })
+      }
+    }
     res.json({ ...route, reviews })
   } catch (err) {
     res.status(500).json({ error: 'Database error' })
   }
 })
 
-// GPX для отображения на карте (без авторизации)
+// GPX для отображения на карте
 app.get('/routes/:id/gpx-view', async (req, res) => {
   try {
     const route = await routesCollection.findOne(
       { _id: new ObjectId(req.params.id) },
-      { projection: { gpxFile: 1 } }
+      { projection: { gpxFile: 1, isPublic: 1, author: 1 } }
     )
     if (!route) return res.status(404).send('Not found')
+    if (route.isPublic === false) {
+      const auth = req.headers.authorization
+      let chatId = null
+      if (auth?.startsWith('Bearer ')) {
+        try { chatId = jwt.verify(auth.slice(7), JWT_SECRET).chatId } catch {}
+      }
+      if (!chatId || String(chatId) !== String(route.author.chatId)) {
+        return res.status(403).send('Access denied')
+      }
+    }
     res.setHeader('Content-Type', 'application/gpx+xml')
     res.sendFile(path.join(GPX_DIR, route.gpxFile))
   } catch (err) {
@@ -627,6 +661,7 @@ app.post('/routes', authRequired, upload.single('gpx'), async (req, res) => {
       gpxFile: req.file.filename,
       author: { chatId: req.user.chatId, name: req.user.name },
       createdAt: new Date(),
+      isPublic: req.body.isPublic !== 'false',
       avgRating: 0,
       reviewCount: 0,
       riddenCount: 0,
@@ -639,6 +674,21 @@ app.post('/routes', authRequired, upload.single('gpx'), async (req, res) => {
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Ошибка сохранения' })
+  }
+})
+
+// Опубликовать маршрут (автор или admin)
+app.patch('/routes/:id/publish', authRequired, async (req, res) => {
+  try {
+    const id = new ObjectId(req.params.id)
+    const route = await routesCollection.findOne({ _id: id })
+    if (!route) return res.status(404).json({ error: 'Маршрут не найден' })
+    if (String(route.author.chatId) !== String(req.user.chatId) && req.user.role !== 'admin')
+      return res.status(403).json({ error: 'Нет прав' })
+    await routesCollection.updateOne({ _id: id }, { $set: { isPublic: true } })
+    res.json({ ok: true })
+  } catch (err) {
+    res.status(500).json({ error: 'Ошибка' })
   }
 })
 

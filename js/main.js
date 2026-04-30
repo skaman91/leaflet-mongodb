@@ -12,7 +12,7 @@ window.mapInstance = map
 document.getElementById('msg').innerHTML = 'Загружаю точки...'
 let historyMarkers = []
 let archivePoints = []
-let buttonsContainer
+let clearButton = null
 let historyLines = {}
 let litePoints = 0
 let hardPoints = 0
@@ -21,24 +21,6 @@ let atvPoints = 0
 let elsePoints = 0
 let noInstall = 0
 
-const StartButton = L.Control.extend({
-  options: {
-    position: 'topright'
-  },
-
-  onAdd: function () {
-    const container = L.DomUtil.create('div', 'start-button')
-    container.innerHTML = '🚀 Играть'
-
-    container.onclick = function () {
-      window.open('https://t.me/liteoffroad_bot', '_blank')
-    }
-
-    return container
-  }
-})
-
-map.addControl(new StartButton())
 
 // OSM — базовый слой с кешированием в IndexedDB
 const OSM = L.tileLayer.offline('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -137,7 +119,7 @@ sliderContainer.addEventListener('pointerleave', stopDrag)
 // L.control.layers(baseLayers).addTo(map)
 
 const locateControl = L.control.locate({
-  position: 'topright', // Расположение кнопки на карте
+  position: 'topleft', // Расположение кнопки на карте
   flyTo: true,
   keepCurrentZoomLevel: true,
   setView: true,        // Автоматическое центрирование карты
@@ -355,27 +337,8 @@ function getRemainingLiveTime (expiresAt) {
 }
 
 // Создание кнопок в нижнем левом углу
-const ButtonsControl = L.Control.extend({
-  options: {
-    position: 'bottomleft'
-  },
-
-  onAdd: function (map) {
-    buttonsContainer = L.DomUtil.create('div', 'glass-control')
-
-    const showButton = L.DomUtil.create('button', 'glass-button', buttonsContainer)
-    showButton.innerHTML = 'Показать историю'
-    showButton.id = 'showButton'
-    L.DomEvent.on(showButton, 'click', getHistoryPoints)
-
-    return buttonsContainer
-  }
-})
 // Создаем попап для отображения списка точек на руках
 const noInstallPopup = L.popup()
-
-// Добавление кнопок на карту
-map.addControl(new ButtonsControl())
 
 const gpxLayer = new L.GPX('./lib/v1.gpx', {
   async: true,
@@ -947,6 +910,7 @@ ${point.channelLink ? `
     infoDiv.innerHTML = `
   <div id="layers-header">Игра "Точки" <span id="layers-arrow">▾</span></div>
   <div id="layers-body">
+    <div class="start-button" onclick="window.open('https://t.me/liteoffroad_bot', '_blank')">🚀 Играть</div>
     <label class="layer-row">
       <input type="checkbox" id="toggle-gpx" checked>
       <span class="type-label">Зона игры</span>
@@ -980,9 +944,16 @@ ${point.channelLink ? `
     </div>
     <hr class="layer-divider">
     <div id="noInstall">На руках: <span id="noInstall-count">${noInstall}</span></div>
+    <hr class="layer-divider">
+    <button class="glass-button" id="showButton">Показать историю</button>
+    <button class="glass-button" id="clearButton" style="display:none">Очистить историю точки</button>
   </div>
 `
     document.getElementById('map-controls-right').appendChild(infoDiv)
+
+    document.getElementById('showButton').addEventListener('click', getHistoryPoints)
+    clearButton = document.getElementById('clearButton')
+    clearButton.addEventListener('click', clearHistory)
 
     // свернуть / развернуть панель
     document.getElementById('layers-header').addEventListener('click', () => {
@@ -1255,11 +1226,6 @@ function clearHistory () {
   toggleButtons()
 }
 
-const clearButton = L.DomUtil.create('button', 'glass-button b-1', buttonsContainer)
-clearButton.innerHTML = 'Очистить историю точки'
-clearButton.id = 'clearButton'
-clearButton.style.display = 'none'
-L.DomEvent.on(clearButton, 'click', clearHistory)
 
 map.on('popupopen', function (e) {
   const button = e.popup._contentNode.querySelector('.one-gpx-download')

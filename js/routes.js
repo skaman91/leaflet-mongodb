@@ -24,13 +24,19 @@ waitForMap(map => {
 
   // ─── Состояние панели ──────────────────────────────────────────────────────
   let panelOpen = false
-  let view = 'list'          // 'list' | 'upload' | 'detail'
+  let view = 'list'          // 'list' | 'upload' | 'detail' | 'profile' | 'mytracks' | 'edit'
   let currentTab = 'routes'  // 'routes' | 'poi' | 'events' | 'rides'
   let routes = []
   let activeLayer = null
   let allLayers = []
   let showAllOnMap = false
   let currentRoute = null
+
+  // ─── GPS Recording state ───────────────────────────────────────────────────
+  let recording = false
+  let recordWatchId = null
+  let recordedPoints = []
+  let recordPolyline = null
 
   // ─── Кнопка Маршруты (HTML-элемент над Слои) ──────────────────────────────
   document.getElementById('routes-toggle-btn').addEventListener('click', togglePanel)
@@ -70,6 +76,7 @@ waitForMap(map => {
 
   backBtn.addEventListener('click', () => {
     if (view === 'upload' || view === 'detail' || view === 'profile') showList()
+    else if (view === 'mytracks') showProfile()
     else if (view === 'edit') openRoute(currentRoute._id)
   })
 
@@ -119,6 +126,8 @@ waitForMap(map => {
       titleEl.textContent = 'Редактировать'
     } else if (v === 'profile') {
       titleEl.textContent = 'Профиль'
+    } else if (v === 'mytracks') {
+      titleEl.textContent = 'Мои треки'
     }
   }
 
@@ -141,6 +150,7 @@ waitForMap(map => {
         setView('list')
         loadAndShowList()
       })
+      updateRecordBtn()
     } else {
       authEl.innerHTML = `
         <div class="rp-auth-tabs">
@@ -175,6 +185,7 @@ waitForMap(map => {
       document.getElementById('auth-password').addEventListener('keydown', e => {
         if (e.key === 'Enter') doAuth(authMode)
       })
+      updateRecordBtn()
     }
   }
 
@@ -332,7 +343,8 @@ waitForMap(map => {
       updateAuthUI()
     }
     content.innerHTML = '<div class="rp-loading">Загружаю…</div>'
-    const res = await fetch(`${API}/routes/${id}`)
+    const detailHeaders = getToken() ? { Authorization: `Bearer ${getToken()}` } : {}
+    const res = await fetch(`${API}/routes/${id}`, { headers: detailHeaders })
     currentRoute = await res.json()
     setView('detail')
     renderDetail(currentRoute)
@@ -628,6 +640,8 @@ waitForMap(map => {
             </div>
           </div>
 
+          <button class="rp-btn-secondary rp-my-tracks-btn" id="btn-my-tracks">🗂 Мои треки</button>
+
           ${data.hasPassword ? `
           <div class="rp-pw-form">
             <div class="rp-section-title">Сменить пароль</div>
@@ -639,6 +653,8 @@ waitForMap(map => {
             <button class="rp-btn-primary" id="btn-pw-save">Сохранить</button>
           </div>` : ''}
         </div>`
+
+      document.getElementById('btn-my-tracks')?.addEventListener('click', showMyTracks)
 
       if (data.hasPassword) {
         document.getElementById('btn-pw-save').addEventListener('click', async () => {
@@ -898,7 +914,8 @@ waitForMap(map => {
   function showOnMap(routeId) {
     clearMapLayer()
     const color = currentRoute ? diffColor(currentRoute.difficulty) : '#2a6cff'
-    fetch(`${API}/routes/${routeId}/gpx-view`)
+    const gpxHeaders = getToken() ? { Authorization: `Bearer ${getToken()}` } : {}
+    fetch(`${API}/routes/${routeId}/gpx-view`, { headers: gpxHeaders })
       .then(r => r.text())
       .then(text => {
         const url = URL.createObjectURL(new Blob([text], { type: 'application/gpx+xml' }))
@@ -939,5 +956,340 @@ waitForMap(map => {
     const m = { dry: '🟢 Сухо', wet: '🟡 Мокро', mud: '🟠 Грязь', snow: '🔵 Снег', impassable: '🔴 Непроходимо' }
     return `<span class="rp-cond">${m[c.status] || c.status}</span>`
   }
+
+  // ─── GPS Recording ─────────────────────────────────────────────────────────
+
+  function initRecordBtn() {
+    if (document.getElementById('btn-record')) return
+    const controls = document.getElementById('map-controls-right')
+    if (!controls) return
+    const btn = document.createElement('button')
+    btn.id = 'btn-record'
+    btn.className = 'btn-record'
+    controls.insertBefore(btn, controls.firstChild)
+    btn.addEventListener('click', () => recording ? stopRecording() : startRecording())
+    updateRecordBtn()
+  }
+
+  function updateRecordBtn() {
+    const btn = document.getElementById('btn-record')
+    if (!btn) return
+    btn.style.display = getToken() ? '' : 'none'
+    btn.classList.toggle('recording', recording)
+    const dist = recording && recordedPoints.length > 1 ? ` · ${calcRecordedDistance()} км` : ''
+    btn.textContent = recording ? `⏹ Стоп${dist}` : '⏺ Запись трека'
+  }
+
+  function startRecording() {
+    if (!navigator.geolocation) {
+      alert('Геолокация не поддерживается браузером')
+      return
+    }
+    recordedPoints = []
+    recording = true
+    updateRecordBtn()
+
+    if (recordPolyline) { map.removeLayer(recordPolyline); recordPolyline = null }
+    recordPolyline = L.polyline([], { color: '#ff2200', weight: 4, opacity: 0.9 }).addTo(map)
+
+    recordWatchId = navigator.geolocation.watchPosition(
+      pos => {
+        const latlng = [pos.coords.latitude, pos.coords.longitude]
+        recordedPoints.push({ lat: pos.coords.latitude, lng: pos.coords.longitude, time: pos.timestamp })
+        recordPolyline.addLatLng(latlng)
+        updateRecordBtn()
+      },
+      err => console.warn('GPS error:', err.message),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    )
+  }
+
+  function stopRecording() {
+    if (recordWatchId !== null) {
+      navigator.geolocation.clearWatch(recordWatchId)
+      recordWatchId = null
+    }
+    recording = false
+    updateRecordBtn()
+
+    if (recordedPoints.length < 2) {
+      alert('Слишком мало точек для сохранения трека')
+      if (recordPolyline) { map.removeLayer(recordPolyline); recordPolyline = null }
+      recordedPoints = []
+      return
+    }
+
+    showSaveRecordDialog()
+  }
+
+  function calcRecordedDistance() {
+    let d = 0
+    for (let i = 1; i < recordedPoints.length; i++) {
+      const lat1 = recordedPoints[i-1].lat, lon1 = recordedPoints[i-1].lng
+      const lat2 = recordedPoints[i].lat, lon2 = recordedPoints[i].lng
+      const R = 6371
+      const dLat = (lat2 - lat1) * Math.PI / 180
+      const dLon = (lon2 - lon1) * Math.PI / 180
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2
+      d += R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    }
+    return Math.round(d * 10) / 10
+  }
+
+  function buildGpx(points, title) {
+    const trkpts = points.map(p =>
+      `    <trkpt lat="${p.lat}" lon="${p.lng}"><time>${new Date(p.time).toISOString()}</time></trkpt>`
+    ).join('\n')
+    const safeName = title.replace(/[<>&'"]/g, c => ({ '<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;' }[c]))
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="LiteOffroad GPS Recorder" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><name>${safeName}</name><trkseg>
+${trkpts}
+  </trkseg></trk>
+</gpx>`
+  }
+
+  function showSaveRecordDialog() {
+    const dist = calcRecordedDistance()
+    const modal = document.createElement('div')
+    modal.id = 'record-modal'
+    modal.innerHTML = `
+      <div class="rec-modal-bg"></div>
+      <div class="rec-modal-box">
+        <div class="rec-modal-title">Сохранить трек</div>
+        <div class="rec-modal-info">${recordedPoints.length} точек · ${dist} км</div>
+        <input type="text" id="rec-title" placeholder="Название трека *" autocomplete="off">
+        <select id="rec-transport">
+          <option value="suv">🚙 Внедорожник</option>
+          <option value="crossover">🚗 Кроссовер</option>
+          <option value="car">🚘 Легковой</option>
+          <option value="atv">🏍 Квадроцикл</option>
+          <option value="enduro">🏁 Эндуро</option>
+          <option value="swamp">🛥 Болотоход</option>
+        </select>
+        <select id="rec-difficulty">
+          <option value="1">🟢 Асфальт / Грунтовка</option>
+          <option value="2">🟡 Грязь, лужи</option>
+          <option value="3">🔴 Серьёзное бездорожье</option>
+          <option value="4">⚫ Осторожно!</option>
+        </select>
+        <div id="rec-error" class="rp-error hidden"></div>
+        <div class="rec-modal-btns">
+          <button class="rp-btn-secondary" id="rec-cancel">Отмена</button>
+          <button class="rp-btn-primary" id="rec-save">Сохранить</button>
+        </div>
+      </div>`
+    document.body.appendChild(modal)
+
+    modal.querySelector('.rec-modal-bg').addEventListener('click', dismissSaveDialog)
+    document.getElementById('rec-cancel').addEventListener('click', dismissSaveDialog)
+    document.getElementById('rec-save').addEventListener('click', saveRecordedTrack)
+  }
+
+  function dismissSaveDialog() {
+    document.getElementById('record-modal')?.remove()
+    if (recordPolyline) { map.removeLayer(recordPolyline); recordPolyline = null }
+    recordedPoints = []
+  }
+
+  async function saveRecordedTrack() {
+    const btn = document.getElementById('rec-save')
+    const errEl = document.getElementById('rec-error')
+    const title = document.getElementById('rec-title').value.trim()
+    errEl.classList.add('hidden')
+
+    if (!title) {
+      errEl.textContent = 'Укажите название'
+      errEl.classList.remove('hidden')
+      return
+    }
+
+    btn.disabled = true
+    btn.textContent = 'Сохраняю…'
+
+    const gpxContent = buildGpx(recordedPoints, title)
+    const gpxFile = new File(
+      [new Blob([gpxContent], { type: 'application/gpx+xml' })],
+      `${title}.gpx`,
+      { type: 'application/gpx+xml' }
+    )
+
+    const form = new FormData()
+    form.append('gpx', gpxFile)
+    form.append('title', title)
+    form.append('description', '')
+    form.append('transport', document.getElementById('rec-transport').value)
+    form.append('difficulty', document.getElementById('rec-difficulty').value)
+    form.append('isPublic', 'false')
+
+    try {
+      const res = await fetch(`${API}/routes`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: form
+      })
+      const data = await res.json().catch(() => ({}))
+
+      if (data._id) {
+        document.getElementById('record-modal')?.remove()
+        if (recordPolyline) { map.removeLayer(recordPolyline); recordPolyline = null }
+        recordedPoints = []
+        showRecordSavedToast(data._id, title)
+      } else {
+        errEl.textContent = data.error || `Ошибка ${res.status}`
+        errEl.classList.remove('hidden')
+        btn.disabled = false
+        btn.textContent = 'Сохранить'
+      }
+    } catch (e) {
+      errEl.textContent = `Нет соединения: ${e.message}`
+      errEl.classList.remove('hidden')
+      btn.disabled = false
+      btn.textContent = 'Сохранить'
+    }
+  }
+
+  function showRecordSavedToast(routeId, title) {
+    document.getElementById('record-toast')?.remove()
+    const toast = document.createElement('div')
+    toast.id = 'record-toast'
+    toast.innerHTML = `
+      <div class="rec-toast">
+        <span class="rec-toast-msg">✅ Трек сохранён</span>
+        <div class="rec-toast-btns">
+          <button class="rec-toast-btn" id="toast-view">Посмотреть</button>
+          <button class="rec-toast-btn rec-toast-publish" id="toast-publish">Опубликовать</button>
+          <button class="rec-toast-close" id="toast-close">✕</button>
+        </div>
+      </div>`
+    document.body.appendChild(toast)
+
+    const cleanup = () => toast.remove()
+    document.getElementById('toast-close').addEventListener('click', cleanup)
+
+    document.getElementById('toast-view').addEventListener('click', () => {
+      cleanup()
+      openRoute(routeId)
+    })
+
+    document.getElementById('toast-publish').addEventListener('click', async () => {
+      const btn = document.getElementById('toast-publish')
+      btn.disabled = true
+      btn.textContent = '…'
+      const r = await fetch(`${API}/routes/${routeId}/publish`, { method: 'PATCH', headers: authHdr() })
+      if (r.ok) {
+        toast.querySelector('.rec-toast-msg').textContent = '✅ Опубликован!'
+        toast.querySelector('.rec-toast-btns').innerHTML =
+          `<button class="rec-toast-btn" id="toast-view2">Посмотреть</button>
+           <button class="rec-toast-close" id="toast-close2">✕</button>`
+        document.getElementById('toast-close2').addEventListener('click', cleanup)
+        document.getElementById('toast-view2').addEventListener('click', () => { cleanup(); openRoute(routeId) })
+      } else {
+        btn.disabled = false
+        btn.textContent = 'Опубликовать'
+      }
+    })
+
+    setTimeout(cleanup, 12000)
+  }
+
+  // ─── Мои треки ──────────────────────────────────────────────────────────────
+
+  async function showMyTracks() {
+    setView('mytracks')
+    content.innerHTML = '<div class="rp-loading">Загружаю…</div>'
+    footer.innerHTML = ''
+
+    try {
+      const res = await fetch(`${API}/my-tracks`, { headers: authHdr() })
+      if (!res.ok) throw new Error(res.status)
+      const tracks = await res.json()
+
+      if (!tracks.length) {
+        content.innerHTML = `
+          <div class="rp-empty">Треков пока нет.<br>
+          Запишите свой первый маршрут<br>кнопкой ⏺ Запись на карте!</div>`
+        return
+      }
+
+      content.innerHTML = `<div id="my-tracks-list">${tracks.map(t => `
+        <div class="rp-card rp-mt-card" data-id="${t._id}">
+          <div class="rp-card-title-row">
+            <span class="rp-diff-dot" style="background:${diffColor(t.difficulty)}"></span>
+            <span class="rp-card-title">${t.title}</span>
+            ${t.isPublic === false ? '<span class="rp-private-badge">приватный</span>' : '<span class="rp-public-badge">публичный</span>'}
+          </div>
+          <div class="rp-card-meta">
+            ${transportIcon(t.transport)} · ${t.distance} км ·
+            ${new Date(t.createdAt).toLocaleDateString('ru-RU')}
+          </div>
+          <div class="rp-mt-actions">
+            <button class="rp-act-btn rp-act-view" data-id="${t._id}">👁 Карта</button>
+            <button class="rp-act-btn rp-act-dl" data-id="${t._id}" data-title="${t.title}">⬇ GPX</button>
+            ${t.isPublic === false
+              ? `<button class="rp-act-btn rp-act-publish" data-id="${t._id}">📢 Публикация</button>`
+              : ''}
+            <button class="rp-act-btn rp-act-delete" data-id="${t._id}">🗑</button>
+          </div>
+        </div>`
+      ).join('')}</div>`
+
+      const list = document.getElementById('my-tracks-list')
+
+      list.addEventListener('click', async e => {
+        const viewBtn    = e.target.closest('.rp-act-view')
+        const dlBtn      = e.target.closest('.rp-act-dl')
+        const publishBtn = e.target.closest('.rp-act-publish')
+        const deleteBtn  = e.target.closest('.rp-act-delete')
+
+        if (viewBtn) {
+          openRoute(viewBtn.dataset.id)
+          return
+        }
+        if (dlBtn) {
+          const id = dlBtn.dataset.id
+          const title = dlBtn.dataset.title || 'track'
+          fetch(`${API}/routes/${id}/gpx`, { headers: { Authorization: `Bearer ${getToken()}` } })
+            .then(r => r.blob())
+            .then(blob => {
+              const a = Object.assign(document.createElement('a'), {
+                href: URL.createObjectURL(blob),
+                download: `${title}.gpx`
+              })
+              a.click()
+              URL.revokeObjectURL(a.href)
+            })
+          return
+        }
+        if (publishBtn) {
+          publishBtn.disabled = true
+          publishBtn.textContent = '…'
+          const r = await fetch(`${API}/routes/${publishBtn.dataset.id}/publish`,
+            { method: 'PATCH', headers: authHdr() })
+          if (r.ok) showMyTracks()
+          else { publishBtn.disabled = false; publishBtn.textContent = '📢 Публикация' }
+          return
+        }
+        if (deleteBtn) {
+          if (deleteBtn.dataset.confirm !== '1') {
+            deleteBtn.textContent = 'Удалить?'
+            deleteBtn.dataset.confirm = '1'
+            setTimeout(() => { if (deleteBtn.dataset.confirm) { deleteBtn.textContent = '🗑'; delete deleteBtn.dataset.confirm } }, 3000)
+            return
+          }
+          const r = await fetch(`${API}/routes/${deleteBtn.dataset.id}`,
+            { method: 'DELETE', headers: authHdr() })
+          if (r.ok) showMyTracks()
+          return
+        }
+      })
+
+    } catch {
+      content.innerHTML = '<div class="rp-empty">Ошибка загрузки</div>'
+    }
+  }
+
+  // ─── Init ──────────────────────────────────────────────────────────────────
+  initRecordBtn()
 
 }) // waitForMap
