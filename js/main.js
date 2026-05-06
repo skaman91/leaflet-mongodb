@@ -235,6 +235,34 @@ async function initGeolocation() {
 
 map.whenReady(initGeolocation)
 
+// Не даём экрану гаснуть пока открыт сайт (Wake Lock API, iOS 16.4+)
+let _wl = null
+
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) {
+    console.warn('Wake Lock API не поддерживается')
+    return
+  }
+  try {
+    _wl = await navigator.wakeLock.request('screen')
+    console.log('Wake Lock активен')
+    _wl.addEventListener('release', () => {
+      console.log('Wake Lock сброшен системой')
+      _wl = null
+    })
+  } catch (e) {
+    console.warn('Wake Lock ошибка:', e.name, e.message)
+  }
+}
+
+// Первое касание — запрашиваем Wake Lock
+document.addEventListener('touchstart', requestWakeLock, { once: true, passive: true })
+
+// Восстанавливаем если страница вернулась в фокус
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && !_wl) requestWakeLock()
+})
+
 // Храним всё по chatId
 const userMarkers = new Map()
 

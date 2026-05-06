@@ -8,6 +8,7 @@ VERSION=$(date +%s)
 # ---------- INDEX ----------
 cp index.html index.html.tmp
 
+sed -i '' "s|nosleep.min.js?v=[0-9a-zA-Z]*|nosleep.min.js?v=$VERSION|g" index.html.tmp
 sed -i '' "s|svg-icon.js?v=[0-9a-zA-Z]*|svg-icon.js?v=$VERSION|g" index.html.tmp
 sed -i '' "s|main.js?v=[0-9a-zA-Z]*|main.js?v=$VERSION|g" index.html.tmp
 sed -i '' "s|routes.js?v=[0-9a-zA-Z]*|routes.js?v=$VERSION|g" index.html.tmp

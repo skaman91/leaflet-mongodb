@@ -151,6 +151,7 @@ waitForMap(map => {
         loadAndShowList()
       })
       updateRecordBtn()
+      checkInterruptedTrack()
     } else {
       authEl.innerHTML = `
         ${hint ? `<div class="rp-auth-hint-msg">${hint}</div>` : ''}
@@ -960,6 +961,111 @@ waitForMap(map => {
 
   // ─── GPS Recording ─────────────────────────────────────────────────────────
 
+  const TRACK_KEY = 'rec_track_v1'
+  let wakeLock = null
+  let bgGeoWatcherId = null
+
+  // ── Wake Lock: не даём экрану погаснуть пока идёт запись ──────────────────
+  async function acquireWakeLock() {
+    if (!('wakeLock' in navigator)) return
+    try {
+      wakeLock = await navigator.wakeLock.request('screen')
+      // ОС сбрасывает wake lock при смене видимости страницы — восстанавливаем
+      document.addEventListener('visibilitychange', onVisibilityChange)
+    } catch (e) { /* устройство не поддерживает или батарея критически низкая */ }
+  }
+
+  async function onVisibilityChange() {
+    if (recording && document.visibilityState === 'visible' && !wakeLock) {
+      try { wakeLock = await navigator.wakeLock.request('screen') } catch (e) {}
+    }
+  }
+
+  function releaseWakeLock() {
+    document.removeEventListener('visibilitychange', onVisibilityChange)
+    if (wakeLock) { wakeLock.release(); wakeLock = null }
+  }
+
+  // ── localStorage: сохраняем трек при каждой новой точке ───────────────────
+  function persistTrack() {
+    try {
+      localStorage.setItem(TRACK_KEY, JSON.stringify(recordedPoints))
+    } catch (e) { /* нет места — игнорируем */ }
+  }
+
+  function clearPersistedTrack() {
+    localStorage.removeItem(TRACK_KEY)
+  }
+
+  function checkInterruptedTrack() {
+    const raw = localStorage.getItem(TRACK_KEY)
+    if (!raw) return
+    let points
+    try { points = JSON.parse(raw) } catch { clearPersistedTrack(); return }
+    if (!Array.isArray(points) || points.length < 2) { clearPersistedTrack(); return }
+
+    const dist = calcDistanceFor(points)
+    const modal = document.createElement('div')
+    modal.id = 'resume-modal'
+    modal.innerHTML = `
+      <div class="rec-modal-bg"></div>
+      <div class="rec-modal-box">
+        <div class="rec-modal-title">⚠️ Незавершённая запись</div>
+        <div class="rec-modal-info">${points.length} точек · ${dist} км</div>
+        <div class="rec-modal-info" style="font-size:11px;color:#888">Приложение было закрыто во время записи</div>
+        <div class="rec-modal-btns" style="flex-direction:column;gap:8px">
+          <button class="rp-btn-primary" id="resume-continue">▶ Продолжить запись</button>
+          <button class="rp-btn-secondary" id="resume-save">💾 Сохранить как есть</button>
+          <button class="rp-btn-secondary" id="resume-discard" style="color:#c00">🗑 Удалить</button>
+        </div>
+      </div>`
+    document.body.appendChild(modal)
+
+    document.getElementById('resume-continue').addEventListener('click', async () => {
+      modal.remove()
+      recordedPoints = points
+      restorePolyline()
+      recording = true
+      updateRecordBtn()
+      acquireWakeLock()
+      if (window.Capacitor) {
+        await startBgRecording()
+      } else {
+        startWebRecording()
+      }
+    })
+
+    document.getElementById('resume-save').addEventListener('click', () => {
+      modal.remove()
+      recordedPoints = points
+      showSaveRecordDialog()
+    })
+
+    document.getElementById('resume-discard').addEventListener('click', () => {
+      modal.remove()
+      clearPersistedTrack()
+    })
+  }
+
+  function restorePolyline() {
+    if (recordPolyline) { map.removeLayer(recordPolyline); recordPolyline = null }
+    const latlngs = recordedPoints.map(p => [p.lat, p.lng])
+    recordPolyline = L.polyline(latlngs, { color: '#ff2200', weight: 4, opacity: 0.9 }).addTo(map)
+    if (latlngs.length) map.panTo(latlngs[latlngs.length - 1])
+  }
+
+  function calcDistanceFor(points) {
+    let d = 0
+    for (let i = 1; i < points.length; i++) {
+      const R = 6371
+      const dLat = (points[i].lat - points[i-1].lat) * Math.PI / 180
+      const dLon = (points[i].lng - points[i-1].lng) * Math.PI / 180
+      const a = Math.sin(dLat/2)**2 + Math.cos(points[i-1].lat*Math.PI/180)*Math.cos(points[i].lat*Math.PI/180)*Math.sin(dLon/2)**2
+      d += R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    }
+    return Math.round(d * 10) / 10
+  }
+
   function initRecordBtn() {
     if (document.getElementById('btn-record')) return
     const RecordControl = L.Control.extend({
@@ -980,6 +1086,7 @@ waitForMap(map => {
     })
     map.addControl(new RecordControl())
     updateRecordBtn()
+    if (getToken()) checkInterruptedTrack()
   }
 
   function updateRecordBtn() {
@@ -1017,42 +1124,82 @@ waitForMap(map => {
     document.getElementById('geo-needed-cancel').addEventListener('click', () => el.remove())
   }
 
-  function startRecording() {
-    if (!navigator.geolocation) {
-      alert('Геолокация не поддерживается браузером')
-      return
-    }
-    recordedPoints = []
-    recording = true
+  function onGpsPoint(lat, lng, time) {
+    recordedPoints.push({ lat, lng, time })
+    recordPolyline.addLatLng([lat, lng])
+    persistTrack()
     updateRecordBtn()
+  }
 
-    if (recordPolyline) { map.removeLayer(recordPolyline); recordPolyline = null }
-    recordPolyline = L.polyline([], { color: '#ff2200', weight: 4, opacity: 0.9 }).addTo(map)
-
+  function startWebRecording() {
     recordWatchId = navigator.geolocation.watchPosition(
-      pos => {
-        const latlng = [pos.coords.latitude, pos.coords.longitude]
-        recordedPoints.push({ lat: pos.coords.latitude, lng: pos.coords.longitude, time: pos.timestamp })
-        recordPolyline.addLatLng(latlng)
-        updateRecordBtn()
-      },
+      pos => onGpsPoint(pos.coords.latitude, pos.coords.longitude, pos.timestamp),
       err => console.warn('GPS error:', err.message),
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     )
   }
 
-  function stopRecording() {
+  async function startBgRecording() {
+    try {
+      const { BackgroundGeolocation } = await import('@capacitor-community/background-geolocation')
+      bgGeoWatcherId = await BackgroundGeolocation.addWatcher(
+        {
+          backgroundMessage: 'Запись трека продолжается...',
+          backgroundTitle: 'Liteoffroad — запись трека',
+          requestPermissions: true,
+          stale: false,
+          distanceFilter: 5
+        },
+        (location, error) => {
+          if (error) { console.warn('BgGeo error:', error.code, error.message); return }
+          onGpsPoint(location.latitude, location.longitude, location.time)
+        }
+      )
+    } catch (e) {
+      console.error('BackgroundGeolocation недоступен, fallback на watchPosition:', e)
+      startWebRecording()
+    }
+  }
+
+  async function startRecording() {
+    recordedPoints = []
+    recording = true
+    clearPersistedTrack()
+    updateRecordBtn()
+    acquireWakeLock()
+
+    if (recordPolyline) { map.removeLayer(recordPolyline); recordPolyline = null }
+    recordPolyline = L.polyline([], { color: '#ff2200', weight: 4, opacity: 0.9 }).addTo(map)
+
+    if (window.Capacitor) {
+      await startBgRecording()
+    } else {
+      if (!navigator.geolocation) { alert('Геолокация не поддерживается браузером'); return }
+      startWebRecording()
+    }
+  }
+
+  async function stopRecording() {
+    if (bgGeoWatcherId) {
+      try {
+        const { BackgroundGeolocation } = await import('@capacitor-community/background-geolocation')
+        await BackgroundGeolocation.removeWatcher({ id: bgGeoWatcherId })
+      } catch (e) { console.error(e) }
+      bgGeoWatcherId = null
+    }
     if (recordWatchId !== null) {
       navigator.geolocation.clearWatch(recordWatchId)
       recordWatchId = null
     }
     recording = false
+    releaseWakeLock()
     updateRecordBtn()
 
     if (recordedPoints.length < 2) {
       alert('Слишком мало точек для сохранения трека')
       if (recordPolyline) { map.removeLayer(recordPolyline); recordPolyline = null }
       recordedPoints = []
+      clearPersistedTrack()
       return
     }
 
@@ -1127,6 +1274,7 @@ ${trkpts}
     document.getElementById('record-modal')?.remove()
     if (recordPolyline) { map.removeLayer(recordPolyline); recordPolyline = null }
     recordedPoints = []
+    clearPersistedTrack()
   }
 
   async function saveRecordedTrack() {
@@ -1171,6 +1319,7 @@ ${trkpts}
         document.getElementById('record-modal')?.remove()
         if (recordPolyline) { map.removeLayer(recordPolyline); recordPolyline = null }
         recordedPoints = []
+        clearPersistedTrack()
         showRecordSavedToast(data._id, title)
       } else {
         errEl.textContent = data.error || `Ошибка ${res.status}`
