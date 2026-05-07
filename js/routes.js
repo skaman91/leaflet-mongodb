@@ -303,7 +303,9 @@ waitForMap(map => {
     try {
       const res = await fetch(`${API}/routes?${params}`)
       routes = await res.json()
+      initSeenIfEmpty(routes)
       renderList()
+      updateNewBadge()
       if (showAllOnMap) loadAllOnMap()
     } catch {
       document.getElementById('rp-list').innerHTML = '<div class="rp-empty">Ошибка загрузки</div>'
@@ -316,6 +318,7 @@ waitForMap(map => {
       list.innerHTML = '<div class="rp-empty">Маршрутов пока нет.<br>Будьте первым!</div>'
       return
     }
+    const newIds = getNewRouteIds(routes)
     list.innerHTML = routes.map(r => {
       const isShown = showAllOnMap || allLayers.some(l => String(l.routeId) === String(r._id))
       return `
@@ -323,6 +326,7 @@ waitForMap(map => {
         <div class="rp-card-title-row">
           <span class="rp-diff-dot" style="background:${diffColor(r.difficulty)}"></span>
           <span class="rp-card-title">${r.title}</span>
+          ${newIds.has(String(r._id)) ? '<span class="rp-new-badge">NEW</span>' : ''}
           <label class="rp-map-cb-label" onclick="event.stopPropagation()">
             <input type="checkbox" class="route-map-cb" data-id="${r._id}" ${isShown ? 'checked' : ''}>
             <span class="rp-map-cb-icon" title="Показать на карте">🗺</span>
@@ -363,6 +367,8 @@ waitForMap(map => {
 
   // ─── Детальный просмотр ────────────────────────────────────────────────────
   async function openRoute(id, { keepLayers = false } = {}) {
+    markAsSeen(id)
+    updateNewBadge()
     if (!keepLayers) {
       clearAllLayers()
       showAllOnMap = false
@@ -1132,6 +1138,72 @@ waitForMap(map => {
     return `<span class="rp-cond">${m[c.status] || c.status}</span>`
   }
 
+  // ─── New routes tracking ───────────────────────────────────────────────────
+
+  function seenKey() {
+    return `seen_routes_${getJwtChatId() || 'guest'}`
+  }
+
+  function getSeenSet() {
+    try { return new Set(JSON.parse(localStorage.getItem(seenKey()) || '[]')) }
+    catch { return new Set() }
+  }
+
+  function saveSeenSet(seen) {
+    try { localStorage.setItem(seenKey(), JSON.stringify([...seen])) }
+    catch {}
+  }
+
+  function initSeenIfEmpty(routeList) {
+    const seen = getSeenSet()
+    if (seen.size === 0 && routeList.length > 0) {
+      saveSeenSet(new Set(routeList.map(r => String(r._id))))
+    }
+  }
+
+  function markAsSeen(routeId) {
+    const seen = getSeenSet()
+    if (seen.has(String(routeId))) return
+    seen.add(String(routeId))
+    saveSeenSet(seen)
+  }
+
+  function getNewRouteIds(routeList) {
+    const seen = getSeenSet()
+    return new Set(routeList.filter(r => !seen.has(String(r._id))).map(r => String(r._id)))
+  }
+
+  function pluralNewRoutes(n) {
+    const cases = [2, 0, 1, 1, 1, 2]
+    const words = ['новый маршрут', 'новых маршрута', 'новых маршрутов']
+    return `${n} ${words[(n % 100 > 4 && n % 100 < 20) ? 2 : cases[(n % 10 < 5) ? n % 10 : 5]]}`
+  }
+
+  function updateNewBadge(routeList) {
+    const count = getNewRouteIds(routeList ?? routes).size
+    let badge = document.getElementById('routes-new-badge')
+    if (count > 0) {
+      if (!badge) {
+        badge = document.createElement('span')
+        badge.id = 'routes-new-badge'
+        badge.className = 'routes-new-badge'
+        document.getElementById('routes-toggle-btn')?.appendChild(badge)
+      }
+      badge.textContent = pluralNewRoutes(count)
+    } else {
+      badge?.remove()
+    }
+  }
+
+  async function checkNewOnLoad() {
+    try {
+      const res = await fetch(`${API}/routes`)
+      const list = await res.json()
+      initSeenIfEmpty(list)
+      updateNewBadge(list)
+    } catch {}
+  }
+
   // ─── GPS Recording ─────────────────────────────────────────────────────────
 
   const TRACK_KEY = 'rec_track_v1'
@@ -1650,5 +1722,6 @@ ${trkpts}
 
   // ─── Init ──────────────────────────────────────────────────────────────────
   initRecordBtn()
+  checkNewOnLoad()
 
 }) // waitForMap

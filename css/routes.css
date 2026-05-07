@@ -16,6 +16,21 @@
     display: none !important;
 }
 
+
+/* ─── Бейдж NEW в карточке маршрута ──────────────────────────────────────────── */
+
+.rp-new-badge {
+    flex-shrink: 0;
+    padding: 1px 5px;
+    background: #e53935;
+    color: #fff;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    align-self: center;
+}
+
 /* ─── Чекбокс показа трека на карте в карточке ────────────────────────────────── */
 
 .rp-map-cb-label {
