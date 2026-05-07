@@ -17,6 +17,32 @@
 }
 
 
+/* ─── Форма сброса пароля ─────────────────────────────────────────────────────── */
+
+.rp-forgot-link {
+    background: none;
+    border: none;
+    color: #2a6cff;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 0;
+    margin-top: 4px;
+    text-align: left;
+}
+
+.rp-forgot-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 0;
+}
+
+.rp-forgot-ok {
+    font-size: 13px;
+    color: #2a7a2a;
+    padding: 6px 0;
+}
+
 /* ─── Бейдж NEW в карточке маршрута ──────────────────────────────────────────── */
 
 .rp-new-badge {

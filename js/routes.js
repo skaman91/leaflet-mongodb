@@ -1,6 +1,14 @@
-// ⚠️ Замените на username вашего Telegram-бота (без @)
 const BOT_USERNAME = 'liteoffroad_bot'
 const API = 'https://point-map.ru'
+
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
 // ─── Ожидаем пока main.js инициализирует карту ────────────────────────────────
 function waitForMap(cb) {
@@ -166,6 +174,7 @@ waitForMap(map => {
           <input type="password" id="auth-password" placeholder="Пароль" autocomplete="current-password">
           <div id="auth-error" class="rp-error hidden"></div>
           <button class="rp-btn-primary" id="btn-auth-submit">Войти</button>
+          <button class="rp-forgot-link" id="btn-forgot" type="button">Забыл пароль</button>
         </div>`
 
       let authMode = 'login'
@@ -188,6 +197,7 @@ waitForMap(map => {
       document.getElementById('auth-password').addEventListener('keydown', e => {
         if (e.key === 'Enter') doAuth(authMode)
       })
+      document.getElementById('btn-forgot').addEventListener('click', showForgotPassword)
       updateRecordBtn()
     }
   }
@@ -325,7 +335,7 @@ waitForMap(map => {
       <div class="rp-card" data-id="${r._id}">
         <div class="rp-card-title-row">
           <span class="rp-diff-dot" style="background:${diffColor(r.difficulty)}"></span>
-          <span class="rp-card-title">${r.title}</span>
+          <span class="rp-card-title">${esc(r.title)}</span>
           ${newIds.has(String(r._id)) ? '<span class="rp-new-badge">NEW</span>' : ''}
           <label class="rp-map-cb-label" onclick="event.stopPropagation()">
             <input type="checkbox" class="route-map-cb" data-id="${r._id}" ${isShown ? 'checked' : ''}>
@@ -340,7 +350,7 @@ waitForMap(map => {
           <span>🏁 ${r.riddenCount}</span>
           ${r.downloadCount ? `<span>⬇ ${r.downloadCount}</span>` : ''}
           ${r.reviewCount ? `<span>💬 ${r.reviewCount}</span>` : ''}
-          <span class="rp-author">${r.author.name}</span>
+          <span class="rp-author">${esc(r.author.name)}</span>
         </div>
       </div>`
     }).join('')
@@ -404,8 +414,8 @@ waitForMap(map => {
           <span class="rp-diff-pill" style="background:${diffColor(route.difficulty)}">${diffLabel(route.difficulty)}</span>
           <span>${route.distance} км</span>
         </div>
-        <div class="rp-detail-author">Автор: <button class="rp-user-link" data-uid="${route.author.chatId}">${route.author.name}</button></div>
-        ${route.description ? `<div class="rp-detail-desc">${route.description}</div>` : ''}
+        <div class="rp-detail-author">Автор: <button class="rp-user-link" data-uid="${esc(route.author.chatId)}">${esc(route.author.name)}</button></div>
+        ${route.description ? `<div class="rp-detail-desc">${esc(route.description)}</div>` : ''}
         <div class="rp-detail-stats">
           🏁 ${route.riddenCount} проехали
           ${route.downloadCount ? ` · ⬇ ${route.downloadCount} скачали` : ''}
@@ -416,7 +426,7 @@ waitForMap(map => {
         <div class="rp-ridden-list">
           <div class="rp-section-title">Трек проехали (${route.riddenUsers.length})</div>
           ${route.riddenUsers.map(u => `
-            <span class="rp-ridden-user">${u.name}</span>`).join('')}
+            <span class="rp-ridden-user">${esc(u.name)}</span>`).join('')}
         </div>` : ''}
 
         ${isAuthor ? `
@@ -452,13 +462,13 @@ waitForMap(map => {
             return `
             <div class="rp-review" data-review-id="${r._id}">
               <div class="rp-rv-top">
-                <b>${r.author.name}</b>
+                <b>${esc(r.author.name)}</b>
                 <div style="display:flex;gap:6px;align-items:center">
                   <span class="rp-rv-date">${new Date(r.createdAt).toLocaleDateString('ru-RU')}</span>
                   ${canDelete ? `<button class="rp-rv-delete" data-id="${r._id}" title="Удалить">✕</button>` : ''}
                 </div>
               </div>
-              ${r.text ? `<div class="rp-rv-text">${r.text}</div>` : ''}
+              ${r.text ? `<div class="rp-rv-text">${esc(r.text)}</div>` : ''}
             </div>`
           }).join('')}` : ''}
         </div>
@@ -604,8 +614,8 @@ waitForMap(map => {
 
       content.innerHTML = `
         <div class="rp-profile">
-          <div class="rp-profile-name">${data.name || name}</div>
-          <div class="rp-profile-rank">🏆 ${data.rank || '—'}</div>
+          <div class="rp-profile-name">${esc(data.name || name)}</div>
+          <div class="rp-profile-rank">🏆 ${esc(data.rank || '—')}</div>
 
           <div class="rp-stats">
             <div class="rp-stat-item">
@@ -652,10 +662,10 @@ waitForMap(map => {
 
       content.innerHTML = `
         <div class="rp-profile">
-          <div class="rp-profile-name">${data.name}</div>
-          ${data.email ? `<div class="rp-profile-email">📧 ${data.email}</div>` : ''}
-          ${regDate ? `<div class="rp-profile-reg">📅 Зарегистрирован: ${regDate}</div>` : ''}
-          <div class="rp-profile-rank">🏆 ${data.rank || '—'}</div>
+          <div class="rp-profile-name">${esc(data.name)}</div>
+          ${data.email ? `<div class="rp-profile-email">📧 ${esc(data.email)}</div>` : ''}
+          ${regDate ? `<div class="rp-profile-reg">📅 Зарегистрирован: ${esc(regDate)}</div>` : ''}
+          <div class="rp-profile-rank">🏆 ${esc(data.rank || '—')}</div>
 
           <div class="rp-stats">
             <div class="rp-stat-item">
@@ -741,8 +751,8 @@ waitForMap(map => {
     setView('edit')
     content.innerHTML = `
       <div class="rp-form">
-        <input type="text" id="edit-title" value="${route.title}" placeholder="Название *">
-        <textarea id="edit-desc" placeholder="Описание">${route.description || ''}</textarea>
+        <input type="text" id="edit-title" value="${esc(route.title)}" placeholder="Название *">
+        <textarea id="edit-desc" placeholder="Описание">${esc(route.description || '')}</textarea>
         <select id="edit-difficulty">
           <option value="1" ${route.difficulty == 1 ? 'selected' : ''}>🟢 Асфальт / Грунтовка</option>
           <option value="2" ${route.difficulty == 2 ? 'selected' : ''}>🟡 Грязь, лужи</option>
@@ -1720,8 +1730,110 @@ ${trkpts}
     }
   }
 
+  // ─── Сброс пароля ──────────────────────────────────────────────────────────
+
+  function showForgotPassword() {
+    const authEl = document.getElementById('rp-auth')
+    authEl.innerHTML = `
+      <div class="rp-forgot-form">
+        <div class="rp-section-title">Восстановление пароля</div>
+        <input type="email" id="forgot-email" placeholder="Ваш email" autocomplete="email">
+        <div id="forgot-error" class="rp-error hidden"></div>
+        <div id="forgot-ok" class="rp-forgot-ok hidden">✅ Письмо отправлено — проверьте почту</div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="rp-btn-secondary" id="btn-forgot-back">← Назад</button>
+          <button class="rp-btn-primary" id="btn-forgot-send">Отправить</button>
+        </div>
+      </div>`
+
+    document.getElementById('btn-forgot-back').addEventListener('click', () => updateAuthUI())
+    document.getElementById('btn-forgot-send').addEventListener('click', async () => {
+      const btn   = document.getElementById('btn-forgot-send')
+      const errEl = document.getElementById('forgot-error')
+      const okEl  = document.getElementById('forgot-ok')
+      const email = document.getElementById('forgot-email').value.trim()
+      errEl.classList.add('hidden')
+      okEl.classList.add('hidden')
+
+      if (!email) { errEl.textContent = 'Введите email'; errEl.classList.remove('hidden'); return }
+
+      btn.disabled = true; btn.textContent = '…'
+      try {
+        await fetch(`${API}/auth/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        })
+        okEl.classList.remove('hidden')
+        btn.textContent = 'Отправлено'
+      } catch {
+        errEl.textContent = 'Нет соединения'
+        errEl.classList.remove('hidden')
+        btn.disabled = false; btn.textContent = 'Отправить'
+      }
+    })
+  }
+
+  function showResetPassword(token) {
+    if (!panelOpen) {
+      panelOpen = true
+      panel.classList.add('open')
+      const arrow = document.getElementById('routes-btn-arrow')
+      if (arrow) arrow.textContent = '▴'
+      document.getElementById('routes-toggle-btn')?.classList.add('active')
+    }
+    document.getElementById('rp-auth').innerHTML = `
+      <div class="rp-forgot-form">
+        <div class="rp-section-title">Новый пароль</div>
+        <input type="password" id="reset-pw" placeholder="Новый пароль (минимум 6 символов)" autocomplete="new-password">
+        <input type="password" id="reset-pw2" placeholder="Повторите пароль" autocomplete="new-password">
+        <div id="reset-error" class="rp-error hidden"></div>
+        <button class="rp-btn-primary" id="btn-reset-submit" style="margin-top:4px">Сохранить пароль</button>
+      </div>`
+    setView('list')
+    content.innerHTML = ''
+
+    document.getElementById('btn-reset-submit').addEventListener('click', async () => {
+      const btn  = document.getElementById('btn-reset-submit')
+      const errEl = document.getElementById('reset-error')
+      const pw   = document.getElementById('reset-pw').value
+      const pw2  = document.getElementById('reset-pw2').value
+      errEl.classList.add('hidden')
+
+      if (pw.length < 6) { errEl.textContent = 'Минимум 6 символов'; errEl.classList.remove('hidden'); return }
+      if (pw !== pw2)    { errEl.textContent = 'Пароли не совпадают'; errEl.classList.remove('hidden'); return }
+
+      btn.disabled = true; btn.textContent = '…'
+      try {
+        const res  = await fetch(`${API}/auth/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, newPassword: pw })
+        })
+        const data = await res.json()
+        if (res.ok) {
+          history.replaceState(null, '', '/')
+          document.getElementById('rp-auth').innerHTML =
+            '<div class="rp-forgot-ok" style="margin:8px 0">✅ Пароль изменён — войдите с новым паролем</div>'
+          updateAuthUI()
+        } else {
+          errEl.textContent = data.error || 'Ошибка'
+          errEl.classList.remove('hidden')
+          btn.disabled = false; btn.textContent = 'Сохранить пароль'
+        }
+      } catch {
+        errEl.textContent = 'Нет соединения'
+        errEl.classList.remove('hidden')
+        btn.disabled = false; btn.textContent = 'Сохранить пароль'
+      }
+    })
+  }
+
   // ─── Init ──────────────────────────────────────────────────────────────────
   initRecordBtn()
   checkNewOnLoad()
+
+  const resetToken = new URLSearchParams(window.location.search).get('reset')
+  if (resetToken) showResetPassword(resetToken)
 
 }) // waitForMap

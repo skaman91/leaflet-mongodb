@@ -1,5 +1,6 @@
 import { MongoClient, ObjectId } from 'mongodb'
-import { BOT_TOKEN, MONGO_URL, SESSION_SECRET as JWT_SECRET } from './auth/data.mjs'
+import { BOT_TOKEN, MONGO_URL, SESSION_SECRET as JWT_SECRET, RESEND_API_KEY } from './auth/data.mjs'
+import { Resend } from 'resend'
 import cors from 'cors'
 import express from 'express'
 import crypto from 'crypto'
@@ -12,7 +13,8 @@ import multer from 'multer'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 
-const proxyAgent = new HttpsProxyAgent("http://95.85.229.24:8888");
+const proxyAgent = new HttpsProxyAgent("http://95.85.229.24:8888")
+const resend = new Resend(RESEND_API_KEY)
 
 const client = new MongoClient(MONGO_URL)
 await client.connect()
@@ -77,15 +79,25 @@ const upload = multer({
 })
 
 // ─── JWT middleware ────────────────────────────────────────────────────────────
-function authRequired(req, res, next) {
+async function authRequired(req, res, next) {
   const auth = req.headers.authorization
   if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'Не авторизован' })
   try {
     req.user = jwt.verify(auth.slice(7), JWT_SECRET)
-    next()
   } catch {
-    res.status(401).json({ error: 'Токен недействителен' })
+    return res.status(401).json({ error: 'Токен недействителен' })
   }
+  try {
+    const user = await usersCollection.findOne(
+      { _id: new ObjectId(req.user.chatId) },
+      { projection: { banned: 1, role: 1 } }
+    )
+    if (user?.banned) return res.status(403).json({ error: 'Аккаунт заблокирован' })
+    if (user?.role) req.user.role = user.role  // актуальная роль из БД
+  } catch {
+    // Telegram-юзеры не в usersCollection — пропускаем
+  }
+  next()
 }
 
 // ─── Расчёт дистанции из GPX ──────────────────────────────────────────────────
@@ -485,6 +497,70 @@ app.patch('/auth/password', authRequired, async (req, res) => {
     )
     res.json({ ok: true })
   } catch (err) {
+    res.status(500).json({ error: 'Ошибка' })
+  }
+})
+
+// ─── Забыл пароль ────────────────────────────────────────────────────────────
+app.post('/auth/forgot-password', async (req, res) => {
+  const { email } = req.body
+  if (!email?.trim()) return res.status(400).json({ error: 'Укажите email' })
+
+  // Всегда отвечаем 200, чтобы не раскрывать существование email
+  res.json({ ok: true })
+
+  try {
+    const user = await usersCollection.findOne({ email: email.trim().toLowerCase() })
+    if (!user) return
+
+    const token = crypto.randomBytes(32).toString('hex')
+    const expiry = new Date(Date.now() + 60 * 60 * 1000) // 1 час
+
+    await usersCollection.updateOne(
+      { _id: user._id },
+      { $set: { resetToken: token, resetTokenExpiry: expiry } }
+    )
+
+    const link = `https://point-map.ru/?reset=${token}`
+    await resend.emails.send({
+      from: 'Liteoffroad <noreply@point-map.ru>',
+      to: user.email,
+      subject: 'Сброс пароля — Liteoffroad',
+      html: `
+        <p>Привет, ${user.displayName}!</p>
+        <p>Для сброса пароля перейди по ссылке (действительна 1 час):</p>
+        <p><a href="${link}">${link}</a></p>
+        <p>Если ты не запрашивал сброс — просто проигнорируй это письмо.</p>
+      `
+    })
+  } catch (err) {
+    console.error('forgot-password error:', err)
+  }
+})
+
+// ─── Сброс пароля по токену ───────────────────────────────────────────────────
+app.post('/auth/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body
+  if (!token || !newPassword) return res.status(400).json({ error: 'Укажите токен и новый пароль' })
+  if (newPassword.length < 6) return res.status(400).json({ error: 'Пароль минимум 6 символов' })
+
+  try {
+    const user = await usersCollection.findOne({
+      resetToken: token,
+      resetTokenExpiry: { $gt: new Date() }
+    })
+    if (!user) return res.status(400).json({ error: 'Ссылка недействительна или истекла' })
+
+    await usersCollection.updateOne(
+      { _id: user._id },
+      {
+        $set: { password: await bcrypt.hash(newPassword, 10) },
+        $unset: { resetToken: '', resetTokenExpiry: '' }
+      }
+    )
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('reset-password error:', err)
     res.status(500).json({ error: 'Ошибка' })
   }
 })
