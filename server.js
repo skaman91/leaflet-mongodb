@@ -525,7 +525,7 @@ app.post('/auth/forgot-password', async (req, res) => {
     await resend.emails.send({
       from: 'Liteoffroad <noreply@point-map.ru>',
       to: user.email,
-      subject: 'Сброс пароля — Liteoffroad',
+      subject: 'Сброс пароля — Liteoffroad point-map.ru',
       html: `
         <p>Привет, ${user.displayName}!</p>
         <p>Для сброса пароля перейди по ссылке (действительна 1 час):</p>
