@@ -456,6 +456,7 @@ const noInstallPopup = L.popup()
 
 const gpxLayer = new L.GPX('./lib/v1.gpx', {
   async: true,
+  gpx_options: { parseElements: ['track', 'route'] },
   polyline_options: { color: 'red', weight: 3, opacity: 0.9 },
   marker_options: {
     startIconUrl: '',

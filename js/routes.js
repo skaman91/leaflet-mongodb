@@ -29,6 +29,7 @@ waitForMap(map => {
   let routes = []
   let activeLayer = null
   let allLayers = []
+  let wptMarkers = []
   let showAllOnMap = false
   let currentRoute = null
 
@@ -275,7 +276,13 @@ waitForMap(map => {
 
     document.getElementById('rf-show-all').addEventListener('change', function () {
       showAllOnMap = this.checked
-      showAllOnMap ? loadAllOnMap() : clearAllLayers()
+      if (showAllOnMap) {
+        document.querySelectorAll('.route-map-cb').forEach(cb => { cb.checked = true })
+        loadAllOnMap()
+      } else {
+        clearAllLayers()
+        document.querySelectorAll('.route-map-cb').forEach(cb => { cb.checked = false })
+      }
     })
 
     fetchRoutes()
@@ -309,11 +316,17 @@ waitForMap(map => {
       list.innerHTML = '<div class="rp-empty">Маршрутов пока нет.<br>Будьте первым!</div>'
       return
     }
-    list.innerHTML = routes.map(r => `
+    list.innerHTML = routes.map(r => {
+      const isShown = showAllOnMap || allLayers.some(l => String(l.routeId) === String(r._id))
+      return `
       <div class="rp-card" data-id="${r._id}">
         <div class="rp-card-title-row">
           <span class="rp-diff-dot" style="background:${diffColor(r.difficulty)}"></span>
           <span class="rp-card-title">${r.title}</span>
+          <label class="rp-map-cb-label" onclick="event.stopPropagation()">
+            <input type="checkbox" class="route-map-cb" data-id="${r._id}" ${isShown ? 'checked' : ''}>
+            <span class="rp-map-cb-icon" title="Показать на карте">🗺</span>
+          </label>
         </div>
         <div class="rp-card-meta">
           ${transportIcon(r.transport)} · ${r.distance} км
@@ -326,10 +339,25 @@ waitForMap(map => {
           <span class="rp-author">${r.author.name}</span>
         </div>
       </div>`
-    ).join('')
+    }).join('')
+
+    list.querySelectorAll('.route-map-cb').forEach(cb => {
+      cb.addEventListener('change', async e => {
+        e.stopPropagation()
+        if (cb.checked) {
+          await addRouteToMap(cb.dataset.id)
+        } else {
+          removeRouteFromMap(cb.dataset.id)
+        }
+        syncShowAllCheckbox()
+      })
+    })
 
     list.querySelectorAll('.rp-card').forEach(c =>
-      c.addEventListener('click', () => openRoute(c.dataset.id))
+      c.addEventListener('click', e => {
+        if (e.target.closest('.rp-map-cb-label')) return
+        openRoute(c.dataset.id)
+      })
     )
   }
 
@@ -840,6 +868,19 @@ waitForMap(map => {
   }
 
   // ─── GPX на карте ──────────────────────────────────────────────────────────
+
+  function parseGpxWaypoints(text) {
+    const doc = new DOMParser().parseFromString(text, 'text/xml')
+    const result = []
+    doc.querySelectorAll('wpt').forEach(wpt => {
+      const lat = parseFloat(wpt.getAttribute('lat'))
+      const lon = parseFloat(wpt.getAttribute('lon'))
+      const name = wpt.querySelector('name')?.textContent?.trim() || ''
+      if (!isNaN(lat) && !isNaN(lon)) result.push({ lat, lon, name })
+    })
+    return result
+  }
+
   function fitWithPadding(bounds) {
     const mobile = window.innerWidth <= 640
     map.fitBounds(bounds, mobile
@@ -849,8 +890,76 @@ waitForMap(map => {
   }
 
   function clearAllLayers() {
-    allLayers.forEach(({ layer }) => map.removeLayer(layer))
+    allLayers.forEach(({ layer, wpts }) => {
+      map.removeLayer(layer)
+      wpts?.forEach(m => map.removeLayer(m))
+    })
     allLayers = []
+    wptMarkers.forEach(m => map.removeLayer(m))
+    wptMarkers = []
+  }
+
+  function removeRouteFromMap(routeId) {
+    const idx = allLayers.findIndex(l => String(l.routeId) === String(routeId))
+    if (idx === -1) return
+    const { layer, wpts } = allLayers[idx]
+    map.removeLayer(layer)
+    wpts?.forEach(m => map.removeLayer(m))
+    allLayers.splice(idx, 1)
+  }
+
+  async function addRouteToMap(routeId) {
+    if (allLayers.some(l => String(l.routeId) === String(routeId))) return
+    const route = routes.find(r => String(r._id) === String(routeId))
+    if (!route) return
+    const color = diffColor(route.difficulty)
+    try {
+      const text = await fetch(`${API}/routes/${routeId}/gpx-view`).then(r => r.text())
+      const routeWpts = parseGpxWaypoints(text).map(wpt => {
+        const m = L.circleMarker([wpt.lat, wpt.lon], {
+          radius: 5, color, fillColor: color, fillOpacity: 1, weight: 2
+        }).addTo(map)
+        if (wpt.name) m.bindTooltip(wpt.name, { permanent: true, direction: 'top', className: 'gpx-wpt-label', offset: [0, -5] })
+        m.on('click', () => openRoute(route._id, { keepLayers: true }))
+        return m
+      })
+      const url = URL.createObjectURL(new Blob([text], { type: 'application/gpx+xml' }))
+      const layer = new L.GPX(url, {
+        async: true,
+        gpx_options: { parseElements: ['track', 'route'] },
+        polyline_options: { color, weight: 3, opacity: 0.8 },
+        marker_options: { startIconUrl: '', endIconUrl: '', wptIconUrls: {} },
+        get_marker: () => null
+      })
+      layer.on('loaded', e => {
+        URL.revokeObjectURL(url)
+        e.target.bindTooltip(route.title, { sticky: true, className: 'rp-track-tooltip' })
+        e.target.on('click', () => openRoute(route._id, { keepLayers: true }))
+        e.target.on('mouseover', () => e.target.setStyle({ weight: 5, opacity: 1 }))
+        e.target.on('mouseout', () => {
+          const hi = allLayers.some(({ layer: l, routeId: rid }) =>
+            l === e.target && String(rid) === String(currentRoute?._id)
+          )
+          e.target.setStyle({ weight: hi ? 6 : 3, opacity: hi ? 1 : 0.8 })
+        })
+      })
+      layer.on('error', () => URL.revokeObjectURL(url))
+      layer.addTo(map)
+      allLayers.push({ layer, routeId: route._id, wpts: routeWpts })
+    } catch (e) {
+      console.error('addRouteToMap:', e)
+    }
+  }
+
+  function syncShowAllCheckbox() {
+    const cbs = [...document.querySelectorAll('.route-map-cb')]
+    if (!cbs.length) return
+    const allChecked = cbs.every(cb => cb.checked)
+    const showAllCb = document.getElementById('rf-show-all')
+    if (showAllCb) {
+      showAllCb.checked = allChecked
+      showAllOnMap = allChecked
+    }
   }
 
   // подсветить выбранный трек, остальные затушить
@@ -880,36 +989,67 @@ waitForMap(map => {
     const valid = results.filter(Boolean)
 
     valid.forEach(({ text, route }) => {
-      const url = URL.createObjectURL(new Blob([text], { type: 'application/gpx+xml' }))
       const color = diffColor(route.difficulty)
+
+      const routeWpts = parseGpxWaypoints(text).map(wpt => {
+        const m = L.circleMarker([wpt.lat, wpt.lon], {
+          radius: 5,
+          color,
+          fillColor: color,
+          fillOpacity: 1,
+          weight: 2
+        }).addTo(map)
+        if (wpt.name) {
+          m.bindTooltip(wpt.name, {
+            permanent: true,
+            direction: 'top',
+            className: 'gpx-wpt-label',
+            offset: [0, -5]
+          })
+        }
+        m.on('click', () => openRoute(route._id, { keepLayers: true }))
+        return m
+      })
+
+      const url = URL.createObjectURL(new Blob([text], { type: 'application/gpx+xml' }))
       const layer = new L.GPX(url, {
         async: true,
+        gpx_options: { parseElements: ['track', 'route'] },
         polyline_options: { color, weight: 3, opacity: 0.8 },
         marker_options: { startIconUrl: '', endIconUrl: '', wptIconUrls: {} },
         get_marker: () => null
       })
-      layer.on('loaded', e => {
+
+      const onDone = (b) => {
         URL.revokeObjectURL(url)
         loadedCount++
-        const b = e.target.getBounds()
-        if (b.isValid()) combinedBounds = combinedBounds ? combinedBounds.extend(b) : b
+        if (b?.isValid()) combinedBounds = combinedBounds ? combinedBounds.extend(b) : b
         if (loadedCount === valid.length && combinedBounds) fitWithPadding(combinedBounds)
+      }
+
+      layer.on('loaded', e => {
+        let b = e.target.getBounds()
+        if (!b.isValid() && routeWpts.length > 0) b = L.featureGroup(routeWpts).getBounds()
+        onDone(b)
 
         e.target.bindTooltip(route.title, { sticky: true, className: 'rp-track-tooltip' })
-
-        // клик — выделяем трек, открываем детали без пересоздания слоёв
         e.target.on('click', () => openRoute(route._id, { keepLayers: true }))
-
         e.target.on('mouseover', () => e.target.setStyle({ weight: 5, opacity: 1 }))
-        e.target.on('mouseout',  () => {
+        e.target.on('mouseout', () => {
           const isHighlighted = allLayers.some(({ layer: l, routeId }) =>
             l === e.target && String(routeId) === String(currentRoute?._id)
           )
           e.target.setStyle({ weight: isHighlighted ? 6 : 3, opacity: isHighlighted ? 1 : 0.8 })
         })
       })
+
+      // Для файлов только с точками (без треков) библиотека кидает error вместо loaded
+      layer.on('error', () => {
+        onDone(routeWpts.length > 0 ? L.featureGroup(routeWpts).getBounds() : null)
+      })
+
       layer.addTo(map)
-      allLayers.push({ layer, routeId: route._id })
+      allLayers.push({ layer, routeId: route._id, wpts: routeWpts })
     })
   }
 
@@ -920,17 +1060,48 @@ waitForMap(map => {
     fetch(`${API}/routes/${routeId}/gpx-view`, { headers: gpxHeaders })
       .then(r => r.text())
       .then(text => {
+        parseGpxWaypoints(text).forEach(wpt => {
+          const m = L.circleMarker([wpt.lat, wpt.lon], {
+            radius: 5,
+            color: '#1a73e8',
+            fillColor: '#1a73e8',
+            fillOpacity: 1,
+            weight: 2
+          }).addTo(map)
+          if (wpt.name) {
+            m.bindTooltip(wpt.name, {
+              permanent: true,
+              direction: 'top',
+              className: 'gpx-wpt-label',
+              offset: [0, -5]
+            })
+          }
+          wptMarkers.push(m)
+        })
+
         const url = URL.createObjectURL(new Blob([text], { type: 'application/gpx+xml' }))
         activeLayer = new L.GPX(url, {
           async: true,
+          gpx_options: { parseElements: ['track', 'route'] },
           polyline_options: { color, weight: 5, opacity: 0.9 },
           marker_options: { startIconUrl: '', endIconUrl: '', wptIconUrls: {} },
           get_marker: () => null
         })
         activeLayer.on('loaded', e => {
           URL.revokeObjectURL(url)
-          fitWithPadding(e.target.getBounds())
+          let bounds = e.target.getBounds()
+          if (!bounds.isValid() && wptMarkers.length > 0) {
+            bounds = L.featureGroup(wptMarkers).getBounds()
+          }
+          if (bounds.isValid()) fitWithPadding(bounds)
           e.target.on('click', () => { if (!panelOpen) { panelOpen = true; panel.classList.add('open'); updateAuthUI() } })
+        })
+        // Для файлов только с точками (без треков) библиотека кидает error вместо loaded
+        activeLayer.on('error', () => {
+          URL.revokeObjectURL(url)
+          if (wptMarkers.length > 0) {
+            fitWithPadding(L.featureGroup(wptMarkers).getBounds())
+          }
         })
         activeLayer.addTo(map)
       })
@@ -938,6 +1109,8 @@ waitForMap(map => {
 
   function clearMapLayer() {
     if (activeLayer) { map.removeLayer(activeLayer); activeLayer = null }
+    wptMarkers.forEach(m => map.removeLayer(m))
+    wptMarkers = []
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────────

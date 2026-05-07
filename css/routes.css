@@ -1,3 +1,47 @@
+/* ─── Метки точек GPX ─────────────────────────────────────────────────────────── */
+
+.gpx-wpt-label {
+    background: rgba(255, 255, 255, 0.88);
+    border: none !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18) !important;
+    padding: 1px 5px !important;
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #1a1a1a !important;
+    white-space: nowrap !important;
+}
+
+.gpx-wpt-label::before {
+    display: none !important;
+}
+
+/* ─── Чекбокс показа трека на карте в карточке ────────────────────────────────── */
+
+.rp-map-cb-label {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    padding: 2px 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.rp-map-cb-label input[type="checkbox"] {
+    display: none;
+}
+
+.rp-map-cb-icon {
+    font-size: 15px;
+    opacity: 0.3;
+    transition: opacity 0.15s;
+    user-select: none;
+}
+
+.rp-map-cb-label:has(input:checked) .rp-map-cb-icon {
+    opacity: 1;
+}
+
 /* ─── Боковая панель маршрутов ───────────────────────────────────────────────── */
 
 #routes-panel {
