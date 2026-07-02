@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Стили маркеров — Точки</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #d8e0ea;
+      min-height: 100vh;
+      padding: 32px 16px 60px;
+    }
+
+    .page-title {
+      text-align: center;
+      font-size: 24px;
+      font-weight: 800;
+      color: #111;
+      margin-bottom: 4px;
+      letter-spacing: -0.5px;
+    }
+    .page-sub {
+      text-align: center;
+      font-size: 13px;
+      color: #7a8699;
+      margin-bottom: 32px;
+    }
+
+    .rank-headers {
+      display: grid;
+      grid-template-columns: 170px 1fr 1fr 1fr 1fr;
+      max-width: 680px;
+      margin: 0 auto 6px;
+      padding: 0 18px;
+    }
+    .rank-header {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .style-card {
+      background: white;
+      border-radius: 20px;
+      overflow: hidden;
+      max-width: 680px;
+      margin: 0 auto 14px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.09);
+    }
+
+    .style-header {
+      padding: 16px 20px 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .style-letter {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      background: #111;
+      color: white;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .style-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #111;
+    }
+    .style-desc {
+      font-size: 12px;
+      color: #bbb;
+      margin-left: 4px;
+    }
+
+    .markers-grid {
+      display: grid;
+      grid-template-columns: 170px 1fr 1fr 1fr 1fr;
+      padding: 12px 16px 20px;
+      gap: 6px;
+    }
+
+    .bg-labels {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      padding-left: 4px;
+      padding-bottom: 4px;
+    }
+    .bg-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #bbb;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .marker-col {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .marker-bg {
+      width: 62px;
+      height: 72px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .marker-bg.light {
+      background: #f0ebe0;
+      background-image:
+        linear-gradient(rgba(120,150,90,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(120,150,90,0.06) 1px, transparent 1px);
+      background-size: 12px 12px;
+    }
+    .marker-bg.satellite {
+      background: #2a3a24;
+    }
+
+    .marker-svg-wrap {
+      filter: drop-shadow(0 3px 7px rgba(0,0,0,0.26));
+      transition: filter 0.15s, transform 0.15s;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .marker-svg-wrap:hover {
+      filter: drop-shadow(0 5px 14px rgba(0,0,0,0.35));
+      transform: scale(1.1) translateY(-3px);
+    }
+
+    .style-note {
+      padding: 0 20px 16px;
+      font-size: 11px;
+      color: #bbb;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+<h1 class="page-title">Стили маркеров</h1>
+<p class="page-sub">Наведите курсор на маркер чтобы увидеть hover-эффект</p>
+
+<div class="rank-headers">
+  <div></div>
+  <div class="rank-header" style="color:#18a82e">🟢 Лайт</div>
+  <div class="rank-header" style="color:#1434f0">🔵 Медиум</div>
+  <div class="rank-header" style="color:#e50505">🔴 Хард</div>
+  <div class="rank-header" style="color:#f5900a">🟠 ATV</div>
+</div>
+
+<div id="styles-container"></div>
+
+<script>
+const RANKS = [
+  { key: 'lite',   color: '#18a82e', label: '🟢 Лайт'  },
+  { key: 'medium', color: '#1434f0', label: '🔵 Медиум' },
+  { key: 'hard',   color: '#e50505', label: '🔴 Хард'   },
+  { key: 'atv',    color: '#f5900a', label: '🟠 ATV'    },
+]
+
+const STYLES = [
+  {
+    letter: 'A',
+    name: 'Текущий',
+    desc: '— полупрозрачная капля, белый круг',
+    note: 'Стандартный стиль из svg-icon.js. Тело капли на 40% прозрачно, белый круг с цветной рамкой.',
+    svg: (c) => `
+      <svg viewBox="0 0 32 48" width="32" height="48" style="overflow:visible">
+        <path d="M1,16 L16,46 L31,16 A8,8 0 0,0 1,16 Z"
+              fill="${c}" fill-opacity="0.42" stroke="${c}" stroke-width="2"/>
+        <circle cx="16" cy="16" r="10.5" fill="white" stroke="${c}" stroke-width="2"/>
+        <text x="16" y="19.8" text-anchor="middle"
+              font-size="10" font-weight="800"
+              font-family="-apple-system,BlinkMacSystemFont,sans-serif" fill="#1a1a1a">12</text>
+      </svg>`
+  },
+  {
+    letter: 'B',
+    name: 'Контурный',
+    desc: '— ghost-тело, яркий контур',
+    note: 'Тело капли почти невидимо — только цветной контур. Круг с толстой рамкой. Номер в цвете ранга. Легко читается на любой карте, не загромождает.',
+    svg: (c) => `
+      <svg viewBox="0 0 32 48" width="32" height="48" style="overflow:visible">
+        <path d="M1,16 L16,46 L31,16 A8,8 0 0,0 1,16 Z"
+              fill="${c}" fill-opacity="0.07" stroke="${c}" stroke-width="2.5"/>
+        <circle cx="16" cy="16" r="10.5" fill="white" fill-opacity="0.95" stroke="${c}" stroke-width="3"/>
+        <text x="16" y="19.8" text-anchor="middle"
+              font-size="10" font-weight="900"
+              font-family="-apple-system,BlinkMacSystemFont,sans-serif" fill="${c}">12</text>
+      </svg>`
+  },
+  {
+    letter: 'C',
+    name: 'Жетон / Щит',
+    desc: '— форма щита, сплошная заливка',
+    note: 'Форма щита (герб) — уместна для игры с очками и рангами. Сплошная заливка — хорошо видна на спутнике. Белый номер крупный и чёткий.',
+    svg: (c) => `
+      <svg viewBox="0 0 32 42" width="30" height="40" style="overflow:visible">
+        <path d="M3,3 L29,3 L29,27 L16,40 L3,27 Z"
+              fill="${c}" stroke="white" stroke-width="2.5" stroke-linejoin="round"/>
+        <text x="16" y="21" text-anchor="middle"
+              font-size="14" font-weight="900"
+              font-family="-apple-system,BlinkMacSystemFont,sans-serif" fill="white">12</text>
+      </svg>`
+  },
+  {
+    letter: 'D',
+    name: 'Маяк / Lollipop',
+    desc: '— круг на ножке, минимализм',
+    note: 'Современный минималистичный стиль. Большой цветной круг с белым номером + тонкая ножка. Чётко читается, выглядит как реальный навигационный маяк.',
+    svg: (c) => `
+      <svg viewBox="0 0 32 50" width="32" height="50" style="overflow:visible">
+        <line x1="16" y1="30" x2="16" y2="48" stroke="${c}" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="16" cy="16" r="14" fill="${c}" stroke="white" stroke-width="2.5"/>
+        <text x="16" y="20.3" text-anchor="middle"
+              font-size="13" font-weight="900"
+              font-family="-apple-system,BlinkMacSystemFont,sans-serif" fill="white">12</text>
+      </svg>`
+  },
+  {
+    letter: 'E',
+    name: 'Плашка / Pin',
+    desc: '— скруглённый прямоугольник со стрелкой',
+    note: 'Стиль современных приложений (Apple Maps, 2GIS). Больше места для текста. Стрелка внизу указывает точное место. Компактный и читаемый.',
+    svg: (c) => `
+      <svg viewBox="0 0 32 44" width="30" height="42" style="overflow:visible">
+        <path d="M8,2 L24,2 Q30,2 30,8 L30,27 Q30,33 24,33 L21,33 L16,43 L11,33 L8,33 Q2,33 2,27 L2,8 Q2,2 8,2 Z"
+              fill="${c}" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+        <text x="16" y="22" text-anchor="middle"
+              font-size="13" font-weight="900"
+              font-family="-apple-system,BlinkMacSystemFont,sans-serif" fill="white">12</text>
+      </svg>`
+  },
+  {
+    letter: 'F',
+    name: 'Кружок',
+    desc: '— только круг, никакого хвоста',
+    note: 'Самый минималистичный. Просто цветной круг с белой обводкой и номером. Маленький якорь внизу. Хорош на плотных картах — не загромождает.',
+    svg: (c) => `
+      <svg viewBox="0 0 32 38" width="32" height="38" style="overflow:visible">
+        <circle cx="16" cy="16" r="14" fill="${c}" stroke="white" stroke-width="3"/>
+        <circle cx="16" cy="34" r="2.5" fill="${c}"/>
+        <line x1="16" y1="30" x2="16" y2="32" stroke="${c}" stroke-width="2"/>
+        <text x="16" y="20.3" text-anchor="middle"
+              font-size="13" font-weight="900"
+              font-family="-apple-system,BlinkMacSystemFont,sans-serif" fill="white">12</text>
+      </svg>`
+  },
+]
+
+const container = document.getElementById('styles-container')
+
+STYLES.forEach(style => {
+  const card = document.createElement('div')
+  card.className = 'style-card'
+
+  card.innerHTML = `
+    <div class="style-header">
+      <span class="style-letter">${style.letter}</span>
+      <span class="style-name">${style.name}</span>
+      <span class="style-desc">${style.desc}</span>
+    </div>
+    <div class="markers-grid">
+      <div class="bg-labels">
+        <span class="bg-label">🗺 Схема</span>
+        <span class="bg-label">🛰 Спутник</span>
+      </div>
+      ${RANKS.map(rank => `
+        <div class="marker-col">
+          <div class="marker-bg light">
+            <div class="marker-svg-wrap">${style.svg(rank.color)}</div>
+          </div>
+          <div class="marker-bg satellite">
+            <div class="marker-svg-wrap">${style.svg(rank.color)}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <p class="style-note">${style.note}</p>
+  `
+
+  container.appendChild(card)
+})
+</script>
+
+</body>
+</html>
