@@ -10,6 +10,16 @@ function esc(str) {
     .replace(/'/g, '&#39;')
 }
 
+// Shimmer-скелетоны на время загрузки списков
+function skeleton(n = 4) {
+  return `<div class="rp-skeleton">${Array.from({ length: n }, () => `
+    <div class="rp-skel-card">
+      <div class="rp-skel-line w55"></div>
+      <div class="rp-skel-line w35"></div>
+      <div class="rp-skel-line w75"></div>
+    </div>`).join('')}</div>`
+}
+
 // ─── Ожидаем пока main.js инициализирует карту ────────────────────────────────
 function waitForMap(cb) {
   if (window.mapInstance) return cb(window.mapInstance)
@@ -278,7 +288,7 @@ waitForMap(map => {
           Показать все на карте
         </label>
       </div>
-      <div id="rp-list"><div class="rp-loading">Загружаю…</div></div>`
+      <div id="rp-list">${skeleton(4)}</div>`
 
     ;['rf-transport', 'rf-difficulty'].forEach(id =>
       document.getElementById(id)?.addEventListener('change', fetchRoutes)
@@ -388,7 +398,7 @@ waitForMap(map => {
       panel.classList.add('open')
       updateAuthUI()
     }
-    content.innerHTML = '<div class="rp-loading">Загружаю…</div>'
+    content.innerHTML = skeleton(3)
     const detailHeaders = getToken() ? { Authorization: `Bearer ${getToken()}` } : {}
     const res = await fetch(`${API}/routes/${id}`, { headers: detailHeaders })
     currentRoute = await res.json()
@@ -603,7 +613,7 @@ waitForMap(map => {
   async function showUserProfile(uid, name) {
     setView('profile')
     titleEl.textContent = name
-    content.innerHTML = '<div class="rp-loading">Загружаю…</div>'
+    content.innerHTML = skeleton(3)
 
     try {
       const res = await fetch(`${API}/users/${uid}`, {
@@ -644,7 +654,7 @@ waitForMap(map => {
   // ─── Профиль ───────────────────────────────────────────────────────────────
   async function showProfile() {
     setView('profile')
-    content.innerHTML = '<div class="rp-loading">Загружаю…</div>'
+    content.innerHTML = skeleton(3)
 
     try {
       const res = await fetch(`${API}/auth/profile`, { headers: authHdr() })
@@ -1638,7 +1648,7 @@ ${trkpts}
 
   async function showMyTracks() {
     setView('mytracks')
-    content.innerHTML = '<div class="rp-loading">Загружаю…</div>'
+    content.innerHTML = skeleton(3)
     footer.innerHTML = ''
 
     try {

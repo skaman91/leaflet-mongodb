@@ -19,7 +19,7 @@ if (window.Capacitor?.isNativePlatform?.()) {
 
 const map = L.map('map', { preferCanvas: true }).setView([60.024828, 30.338195], 9)
 window.mapInstance = map
-document.getElementById('msg').innerHTML = 'Загружаю точки...'
+document.getElementById('msg').innerHTML = '<span class="msg-spinner"></span>Загружаю точки…'
 let historyMarkers = []
 let archivePoints = []
 let clearButton = null
@@ -1505,7 +1505,7 @@ function downloadOnePointGPX (lat, lon, name, comment) {
 async function getHistoryPoints () {
   let archivePoints = []
   let circles = {}
-  document.getElementById('msg').innerHTML = 'Загружаю архивные точки...'
+  document.getElementById('msg').innerHTML = '<span class="msg-spinner"></span>Загружаю архивные точки…'
   await fetch('https://point-map.ru/pointsHistory')
     .then(response => {
       if (!response.ok) {

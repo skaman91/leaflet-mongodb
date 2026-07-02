@@ -88,7 +88,7 @@
 #routes-panel {
     position: fixed;
     top: 0;
-    right: -340px;
+    right: 0;
     width: 320px;
     height: 100%;
     touch-action: pan-y;
@@ -101,13 +101,21 @@
     z-index: 20000;
     display: flex;
     flex-direction: column;
-    transition: right 0.28s ease;
+    /* transform вместо right: движение через GPU, без пересчёта layout; +24px прячет тень */
+    transform: translateX(calc(100% + 24px));
+    transition: transform 0.32s cubic-bezier(0.32, 0.72, 0.24, 1);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 13px;
 }
 
 #routes-panel.open {
-    right: 0;
+    transform: translateX(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #routes-panel {
+        transition: none;
+    }
 }
 
 /* Шапка панели */
@@ -483,6 +491,42 @@
 /* Вспомогательные */
 .rp-diff { color: #f5a623; }
 .rp-cond { font-size: 11px; }
+
+/* Shimmer-скелетоны загрузки */
+.rp-skeleton {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.rp-skel-card {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.rp-skel-line {
+    height: 11px;
+    border-radius: 6px;
+    background: linear-gradient(90deg,
+        rgba(0, 0, 0, 0.06) 25%,
+        rgba(0, 0, 0, 0.11) 45%,
+        rgba(0, 0, 0, 0.06) 65%);
+    background-size: 220% 100%;
+    animation: skel-shimmer 1.3s ease-in-out infinite;
+}
+.rp-skel-line.w35 { width: 35%; }
+.rp-skel-line.w55 { width: 55%; }
+.rp-skel-line.w75 { width: 75%; }
+@keyframes skel-shimmer {
+    from { background-position: 130% 0; }
+    to   { background-position: -90% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .rp-skel-line { animation: none; }
+}
 
 .rp-loading, .rp-empty {
     text-align: center;
@@ -1017,28 +1061,29 @@
     #routes-panel {
         top: auto;
         right: 0;
-        bottom: -55vh;
+        bottom: 0;
         width: 100%;
         height: 55vh;
         border-left: none;
         border-top: 1px solid rgba(255, 255, 255, 0.6);
         border-radius: 18px 18px 0 0;
         box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
-        transition: bottom 0.28s ease;
+        transform: translateY(calc(100% + 24px));
+        transition: transform 0.32s cubic-bezier(0.32, 0.72, 0.24, 1);
     }
 
     #routes-panel.open {
-        right: 0;
-        bottom: 0;
+        transform: translateY(0);
     }
 
     /* Capacitor: отступ снизу под навигационную панель */
-    body.capacitor-app #routes-panel.open {
-        bottom: env(safe-area-inset-bottom, 0px);
-    }
     body.capacitor-app #routes-panel {
-        bottom: calc(-55vh + env(safe-area-inset-bottom, 0px));
+        bottom: env(safe-area-inset-bottom, 0px);
         height: calc(55vh - env(safe-area-inset-bottom, 0px));
+        transform: translateY(calc(100% + 24px + env(safe-area-inset-bottom, 0px)));
+    }
+    body.capacitor-app #routes-panel.open {
+        transform: translateY(0);
     }
 
     /* Ручка для свайпа */
