@@ -1,4 +1,5 @@
 /node_modules
+/.deploy-min
 /auth
 /deploy.sh
 /www/auth

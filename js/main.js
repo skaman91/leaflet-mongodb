@@ -1,5 +1,15 @@
 import { RADIUS } from './const.js'
 
+// Экранирование пользовательских данных перед вставкой в HTML (защита от XSS)
+export function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
 // Проверяем, что это Capacitor (Android-приложение)
 if (window.Capacitor?.isNativePlatform?.()) {
   const { StatusBar } = window.Capacitor.Plugins;
@@ -282,7 +292,7 @@ const arrowIconGray = L.icon({
 function createNameLabel(name) {
   return L.divIcon({
     className: 'user-name-label',
-    html: `<span class="user-name-text">${name}</span>`,
+    html: `<span class="user-name-text">${escapeHtml(name)}</span>`,
     iconSize: [120, 20],
     iconAnchor: [60, 36]
   })
@@ -328,12 +338,12 @@ async function updateOtherUsers () {
       }
 
       const popupText = `
-        <b>${name}</b><br>
+        <b>${escapeHtml(name)}</b><br>
         Обновлено: ${timeStr}<br>
         Точность: ${accuracy ? accuracy + ' м' : '—'}<br>
         Скорость: ${speed ? speed.toFixed(1) + ' км/ч' : '—'}<br>
         ${liveStr}<br>
-        <span style="font-size:10px;color:#777">id: ${chatId}</span>
+        <span style="font-size:10px;color:#777">id: ${escapeHtml(chatId)}</span>
       `
 
       const ageMin = (now - new Date(timestamp).getTime()) / 60000
@@ -410,9 +420,26 @@ async function updateOtherUsers () {
   }
 }
 
-// старт
-updateOtherUsers()
-setInterval(updateOtherUsers, 10000)
+// старт; в фоновой вкладке поллинг приостанавливается — экономит батарею и трафик
+let otherUsersTimer = null
+
+function startOtherUsersPolling() {
+  if (otherUsersTimer) return
+  updateOtherUsers()
+  otherUsersTimer = setInterval(updateOtherUsers, 10000)
+}
+
+function stopOtherUsersPolling() {
+  clearInterval(otherUsersTimer)
+  otherUsersTimer = null
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stopOtherUsersPolling()
+  else startOtherUsersPolling()
+})
+
+startOtherUsersPolling()
 
 function getRemainingLiveTime (expiresAt) {
 
@@ -533,7 +560,7 @@ window.addEventListener('load', function () {
 
     // ✅ Можно показать приветствие на сайте
     document.getElementById('auth-container').innerHTML = `
-            <p>Привет, ${firstName}!</p>
+            <p>Привет, ${escapeHtml(firstName)}!</p>
             <button id="logout">Выйти</button>
         `
 
@@ -761,8 +788,8 @@ await fetch('https://point-map.ru/points')
       const name = point.point
       const rating = point.rating
       const circleText = `<div style="text-align: center; margin-top: -3.8em">
-               <strong>${name.split(' ')[1]}</strong><br>
-               <span style="font-size: 8px; color: #686868;">${rating}</span>
+               <strong>${escapeHtml(name.split(' ')[1])}</strong><br>
+               <span style="font-size: 8px; color: #686868;">${escapeHtml(rating)}</span>
              </div>`
       const comment = point.comment
       const installTime = point.takeTimestamp
@@ -805,15 +832,15 @@ await fetch('https://point-map.ru/points')
       markersByType[typeKey].push(marker)
 
       const popupContent = `
-  <b>${getRang(rang)} ${name}</b><br>
+  <b>${getRang(rang)} ${escapeHtml(name)}</b><br>
 
   Координаты:
   <span id="copy-coords" class="popup-link">
     ${lat}, ${lon}
   </span><br>
 
-  Рейтинг точки: ${rating}<br>
-  Точку установил: ${point.installed}<br>
+  Рейтинг точки: ${escapeHtml(rating)}<br>
+  Точку установил: ${escapeHtml(point.installed)}<br>
   <div class="popup-time">
   Установлена:
   <span class="popup-date">
@@ -825,7 +852,7 @@ await fetch('https://point-map.ru/points')
 
   ${point.comment ? `
     <div class="popup-comment">
-      ${point.comment}
+      ${escapeHtml(point.comment)}
     </div>
   ` : ''}
 
@@ -834,20 +861,20 @@ await fetch('https://point-map.ru/points')
   <button class="popup-btn one-gpx-download"
     data-lat="${lat}"
     data-lon="${lon}"
-    data-name="${name}"
-    data-comment="${comment}">
+    data-name="${escapeHtml(name)}"
+    data-comment="${escapeHtml(comment)}">
     ⬇️ GPX
   </button>
 
   <button class="popup-btn load-history"
-    data-name="${name}">
+    data-name="${escapeHtml(name)}">
     История
   </button>
 
 </div>
 
 ${point.channelLink ? `
-  <a href="${point.channelLink}" target="_blank"
+  <a href="${escapeHtml(point.channelLink)}" target="_blank"
      class="popup-btn popup-btn-link popup-btn-full">
     💬 Обсудить точку
   </a>
@@ -864,7 +891,7 @@ ${point.channelLink ? `
   <img
   class="popup-image"
   id="popup-photo"
-  data-src="https://point-map.ru/photo/telegram/${point.photo}"
+  data-src="https://point-map.ru/photo/telegram/${escapeHtml(point.photo)}"
   alt="Фото точки">
 </div>
 `
@@ -985,8 +1012,8 @@ ${point.channelLink ? `
           .then(historyPoint => {
             const point = historyPoint[0]
             const circleText = `<div style="text-align: center; margin-top: -3.8em">
-               <strong>${point.point.split(' ')[1]}</strong><br>
-               <span style="font-size: 8px; color: #686868;">${point.rating}</span>
+               <strong>${escapeHtml(point.point.split(' ')[1])}</strong><br>
+               <span style="font-size: 8px; color: #686868;">${escapeHtml(point.rating)}</span>
              </div>`
             const rawCoordinates = point.coordinates.split(',')
             const lat = parseFloat(rawCoordinates[0])
@@ -1005,11 +1032,11 @@ ${point.channelLink ? `
             map.setView([lat, lon], 10)
 
             const popupContent = `
-        <b>${point.point}</b><br>
+        <b>${escapeHtml(point.point)}</b><br>
         Координаты: ${lat}, ${lon}<br>
-        Рейтинг точки: ${point.rating}<br>
-        Точку взял: ${point.installed}<br>
-        ${point.comment}
+        Рейтинг точки: ${escapeHtml(point.rating)}<br>
+        Точку взял: ${escapeHtml(point.installed)}<br>
+        ${escapeHtml(point.comment)}
       `
             marker.bindPopup(popupContent)
           })
@@ -1246,7 +1273,7 @@ async function loadPointHistory (pointName, marker) {
 
       const name = point.point
       const comment = point.comment
-      const circleText = name.split(' ')[1]
+      const circleText = escapeHtml(name.split(' ')[1])
 
       archivePoints.push({ lat, lon, name, comment })
       const marker = new L.Marker.SVGMarker([lat, lon], {
@@ -1268,11 +1295,11 @@ async function loadPointHistory (pointName, marker) {
       }
 
       const label = `
-    <b>${name}<br>${rawCoorditares}<br>
-    Рейтинг точки: ${point.rating}<br>
-    Точку взял: ${point.installed}</b><br>
-    ${point.comment}<br>
-    <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${point.comment}">
+    <b>${escapeHtml(name)}<br>${rawCoorditares}<br>
+    Рейтинг точки: ${escapeHtml(point.rating)}<br>
+    Точку взял: ${escapeHtml(point.installed)}</b><br>
+    ${escapeHtml(point.comment)}<br>
+    <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${escapeHtml(name)}" data-comment="${escapeHtml(point.comment)}">
         Скачать GPX файл этой точки
     </button><br>
     <label class="circle-toggle">
@@ -1494,7 +1521,7 @@ async function getHistoryPoints () {
 
         const name = point.point
         const comment = point.comment
-        const circleText = name.split(' ')[1]
+        const circleText = escapeHtml(name.split(' ')[1])
 
         archivePoints.push({ lat, lon, name, comment })
         const marker = new L.Marker.SVGMarker([lat, lon], {
@@ -1512,11 +1539,11 @@ async function getHistoryPoints () {
         markers.push(marker)
 
         const label = `
-    <b>${name}<br>${rawCoorditares}<br>
-    Рейтинг точки: ${point.rating}<br>
-    Точку взял: ${point.installed}</b><br>
-    ${point.comment}<br>
-    <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${name}" data-comment="${point.comment}">
+    <b>${escapeHtml(name)}<br>${rawCoorditares}<br>
+    Рейтинг точки: ${escapeHtml(point.rating)}<br>
+    Точку взял: ${escapeHtml(point.installed)}</b><br>
+    ${escapeHtml(point.comment)}<br>
+    <button class="one-gpx-download" data-lat="${lat}" data-lon="${lon}" data-name="${escapeHtml(name)}" data-comment="${escapeHtml(point.comment)}">
         Скачать GPX файл этой точки
     </button><br>
     <label class="circle-toggle">

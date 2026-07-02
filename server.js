@@ -34,6 +34,22 @@ const downloadsCollection = db.collection('route_downloads')
 // Назначаем skaman администратором (идемпотентно)
 usersCollection.updateOne({ username: 'skaman' }, { $set: { role: 'admin' } }).catch(console.error)
 
+// Индексы под горячие запросы (createIndex идемпотентен)
+Promise.all([
+  tracksCollection.createIndex({ active: 1 }),
+  tracksCollection.createIndex({ chatId: 1, active: 1 }),
+  trackPointsCollection.createIndex({ trackId: 1, timestamp: -1 }),
+  trackPointsCollection.createIndex({ chatId: 1, timestamp: -1 }),
+  pointsCollection.createIndex({ point: 1 }),
+  historyCollection.createIndex({ point: 1, takeTimestamp: 1 }),
+  historyCollection.createIndex({ id: 1 }),
+  usersCollection.createIndex({ username: 1 }),
+  usersCollection.createIndex({ email: 1 }),
+  routesCollection.createIndex({ isPublic: 1, createdAt: -1 }),
+  routesCollection.createIndex({ 'author.chatId': 1, createdAt: -1 }),
+  reviewsCollection.createIndex({ routeId: 1, createdAt: -1 })
+]).catch(err => console.error('Ошибка создания индексов:', err))
+
 const PHOTO_CACHE_DIR = path.join(process.cwd(), 'cache', 'photos')
 fs.mkdirSync(PHOTO_CACHE_DIR, { recursive: true })
 

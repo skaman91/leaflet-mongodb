@@ -147,7 +147,7 @@ waitForMap(map => {
       authEl.innerHTML = `
         <div class="rp-auth-row">
           <button class="rp-auth-name-btn" id="rp-profile-btn">
-            ${isAdmin() ? '⚙️' : '👤'} ${getUserName()}${isAdmin() ? ' <span class="rp-role-badge">Admin</span>' : ''}
+            ${isAdmin() ? '⚙️' : '👤'} ${esc(getUserName())}${isAdmin() ? ' <span class="rp-role-badge">Admin</span>' : ''}
           </button>
           <button class="rp-logout" id="rp-logout">Выйти</button>
         </div>`
@@ -1657,7 +1657,7 @@ ${trkpts}
         <div class="rp-card rp-mt-card" data-id="${t._id}">
           <div class="rp-card-title-row">
             <span class="rp-diff-dot" style="background:${diffColor(t.difficulty)}"></span>
-            <span class="rp-card-title">${t.title}</span>
+            <span class="rp-card-title">${esc(t.title)}</span>
             ${t.isPublic === false ? '<span class="rp-private-badge">приватный</span>' : '<span class="rp-public-badge">публичный</span>'}
           </div>
           <div class="rp-card-meta">
@@ -1666,7 +1666,7 @@ ${trkpts}
           </div>
           <div class="rp-mt-actions">
             <button class="rp-act-btn rp-act-view" data-id="${t._id}">👁 Карта</button>
-            <button class="rp-act-btn rp-act-dl" data-id="${t._id}" data-title="${t.title}">⬇ GPX</button>
+            <button class="rp-act-btn rp-act-dl" data-id="${t._id}" data-title="${esc(t.title)}">⬇ GPX</button>
             ${t.isPublic === false
               ? `<button class="rp-act-btn rp-act-publish" data-id="${t._id}">📢 Публикация</button>`
               : ''}

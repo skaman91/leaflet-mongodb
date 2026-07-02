@@ -29,12 +29,26 @@ cp sw.js sw.js.tmp
 sed -i '' "s|const VERSION      = '[^']*'|const VERSION      = '$VERSION'|g" sw.js.tmp
 
 
+# ---------- MINIFY ----------
+# Минифицируем свой код (сторонние *.min.js уже минифицированы).
+# На сервер уходят минифицированные версии, локальные файлы не меняются.
+MINDIR="$BASEDIR/.deploy-min"
+rm -rf "$MINDIR"
+mkdir -p "$MINDIR/js" "$MINDIR/css"
+
+npx esbuild js/main.js js/routes.js js/svg-icon.js js/const.js \
+  --minify --outdir="$MINDIR/js" --log-level=warning || exit 1
+npx esbuild css/style.css css/routes.css \
+  --minify --outdir="$MINDIR/css" --log-level=warning || exit 1
+
+
 # ---------- DEPLOY ----------
 ssh "$SERVER" -t "mkdir -p /var/www/point-map.ru"
 
 rsync -rzv "$BASEDIR/" "$USER@$SERVER":/var/www/point-map.ru \
-  --exclude node_modules --exclude .git \
+  --exclude node_modules --exclude .git --exclude .deploy-min \
   --exclude index.html --exclude routes.html --exclude sw.js \
+  && rsync -rzv "$MINDIR/" "$USER@$SERVER":/var/www/point-map.ru \
   && rsync -zv "$BASEDIR/index.html.tmp" "$USER@$SERVER":/var/www/point-map.ru/index.html \
   && rsync -zv "$BASEDIR/routes.html.tmp" "$USER@$SERVER":/var/www/point-map.ru/routes.html \
   && rsync -zv "$BASEDIR/sw.js.tmp" "$USER@$SERVER":/var/www/point-map.ru/sw.js
@@ -44,3 +58,4 @@ rsync -rzv "$BASEDIR/" "$USER@$SERVER":/var/www/point-map.ru \
 rm "$BASEDIR/index.html.tmp"
 rm "$BASEDIR/routes.html.tmp"
 rm "$BASEDIR/sw.js.tmp"
+rm -rf "$MINDIR"
