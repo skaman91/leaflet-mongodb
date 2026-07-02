@@ -962,13 +962,21 @@
     /* СОВРЕМЕННЫЕ МАРКЕРЫ                                            */
     /* ═══════════════════════════════════════════════════════════════ */
 
+    /* transform корня занят позиционированием Leaflet — не анимируем его,
+       иначе маркеры "плывут" при пинч-зуме; hover-эффект на внутреннем svg */
     .svg-icon {
         filter: drop-shadow(0 3px 7px rgba(0, 0, 0, 0.24));
-        transition: filter 0.15s, transform 0.15s;
+        transition: filter 0.15s;
     }
     .svg-icon:hover {
         filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.32));
-        transform: scale(1.1) translateY(-2px);
+    }
+    .svg-icon svg {
+        transition: transform 0.15s;
+        transform-origin: bottom center;
+    }
+    .svg-icon:hover svg {
+        transform: scale(1.08);
     }
 
     /* ═══════════════════════════════════════════════════════════════ */
