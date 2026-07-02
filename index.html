@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <link rel="stylesheet" href="css/leaflet.css">
     <link rel="stylesheet" href="css/MarkerCluster.css">
-    <link rel="stylesheet" href="css/style.css?v=3">
+    <link rel="stylesheet" href="css/style.css?v=5">
     <link rel="stylesheet" href="css/routes.css?v=3">
     <title>"Точки" Liteoffroad</title>
 </head>
@@ -44,9 +44,16 @@
 
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
-      .then(reg => console.log('SW scope:', reg.scope))
-      .catch(err => console.warn('SW error:', err))
+    const isLocalhost = ['localhost', '127.0.0.1'].includes(location.hostname)
+    if (isLocalhost) {
+      // Локальная разработка: SW не нужен, снимаем уже зарегистрированный, чтобы не кэшировал
+      navigator.serviceWorker.getRegistrations()
+        .then(regs => regs.forEach(reg => reg.unregister()))
+    } else {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then(reg => console.log('SW scope:', reg.scope))
+        .catch(err => console.warn('SW error:', err))
+    }
   }
 </script>
 <script defer src="js/nosleep.min.js?v=0"></script>
@@ -54,14 +61,14 @@
 <script defer src="js/leaflet.markercluster.js"></script>
 <script defer src="js/idb.min.js"></script>
 <script defer src="js/leaflet.offline.js"></script>
-<script defer src="js/svg-icon.js?v=1776964004"></script>
+<script defer src="js/svg-icon.js?v=5"></script>
 <script defer src="js/L.Control.Locate.min.js" charset="utf-8"></script>
 <script defer src="js/leaflet.rotatedMarker.js"></script>
 <script defer src="js/gpx.min.js"></script>
 <script defer src="js/leaflet-ruler.js"></script>
 <script defer src="js/Leaflet.Control.Opacity.js"></script>
 <!-- module-скрипты выполняются в порядке документа вместе с defer — держим их после плагинов Leaflet -->
-<script type="module" src="js/main.js?v=1776964004"></script>
-<script type="module" src="js/routes.js?v=0"></script>
+<script type="module" src="js/main.js?v=6"></script>
+<script type="module" src="js/routes.js?v=4"></script>
 
 </html>

@@ -746,6 +746,19 @@ const markers = []
 const markersByType = { Лайт: [], Медиум: [], Хард: [], Atv: [], else: [] }
 const LS_KEY = 'liteoffroad_layers'
 
+// Кластеризация архивных точек: их сотни, на дальнем зуме собираются в кружки с числом
+const archiveCluster = L.markerClusterGroup({
+  maxClusterRadius: 45,
+  disableClusteringAtZoom: 12,
+  showCoverageOnHover: false,
+  spiderfyOnMaxZoom: false,
+  iconCreateFunction: cluster => L.divIcon({
+    className: 'archive-cluster',
+    html: `<div class="archive-cluster-inner">${cluster.getChildCount()}</div>`,
+    iconSize: L.point(36, 36)
+  })
+}).addTo(map)
+
 await fetch('https://point-map.ru/points')
   .then(response => {
     if (!response.ok) {
@@ -1287,7 +1300,7 @@ async function loadPointHistory (pointName, marker) {
       })
       historyMarkers.push(marker)
 
-      marker.addTo(map)
+      archiveCluster.addLayer(marker)
       markers.push(marker)
 
       if (point.install) {
@@ -1371,7 +1384,7 @@ async function loadPointHistory (pointName, marker) {
 function clearHistory () {
   Object.values(historyLines).forEach(line => map.removeLayer(line))
   historyLines = {}
-  historyMarkers.forEach(marker => map.removeLayer(marker))
+  archiveCluster.clearLayers()
   historyMarkers = []
   toggleButtons()
 }
@@ -1535,7 +1548,7 @@ async function getHistoryPoints () {
         })
         historyMarkers.push(marker)
 
-        marker.addTo(map)
+        archiveCluster.addLayer(marker)
         markers.push(marker)
 
         const label = `
@@ -1638,8 +1651,8 @@ navigator.geolocation.watchPosition(
 
     // Проверяем, есть ли точки в пределах 300 м
     for (const marker of markers) {
-      const markerLat = marker._latlng[0]
-      const markerLng = marker._latlng[1]
+      const markerLat = marker.getLatLng().lat
+      const markerLng = marker.getLatLng().lng
       const distance = calculateDistance(userLat, userLng, markerLat, markerLng)
 
       if (distance <= 300) {

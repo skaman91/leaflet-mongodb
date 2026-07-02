@@ -1,4 +1,4 @@
-const VERSION      = '3'
+const VERSION      = '4'
 const STATIC_CACHE = `static-v${VERSION}`
 const API_CACHE    = `api-v${VERSION}`
 const ALL_CACHES   = [STATIC_CACHE, API_CACHE]
